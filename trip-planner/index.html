@@ -230,7 +230,7 @@
       <strong>✨ ข้อมูลทริป</strong>
       <div class="factgrid" style="margin-top:10px" id="facts"></div>
       <div class="toolsrow" style="margin-top:14px">
-        <button class="act" id="exportBtn">📤 สำรองข้อมูล (JSON)</button>
+        <button class="act" id="exportBtn">📤 สำรอง / กู้คืนข้อมูล</button>
         <button class="act ghost-danger" id="resetBtn">🧹 รีเซ็ตเป็นแพลนเริ่มต้น</button>
       </div>
     </div></div>
@@ -300,16 +300,30 @@
   </form>
 </dialog>
 
+<dialog id="bakDlg">
+  <div class="dpad">
+    <h3>📤 สำรอง / กู้คืนข้อมูล</h3>
+    <p class="hint" style="margin:0 0 10px">คัดลอกข้อความด้านล่างไปเก็บไว้ (แปะลงแอปโน้ตหรือแชทตัวเอง) — จะกู้คืนเมื่อไหร่ ก็วางข้อความกลับลงช่องนี้แล้วกด "กู้คืน"</p>
+    <div class="field"><textarea id="bakText" rows="7" style="font-size:12px" aria-label="ข้อมูลสำรอง JSON"></textarea></div>
+    <div class="dbtns" style="flex-wrap:wrap;justify-content:flex-start">
+      <button class="act primary" id="bakCopy">📋 คัดลอก</button>
+      <button class="act" id="bakShare">📤 แชร์ / บันทึกไฟล์</button>
+      <button class="act" id="bakRestore">♻️ กู้คืน</button>
+      <button class="act" id="bakClose">ปิด</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 (function(){
 "use strict";
-const KEY = "cnx-trip-2026-v1";
+const KEY = "cnx-trip-2026-v2";
 const uid = () => Math.random().toString(36).slice(2,9);
 const THB = n => "฿" + (Number(n)||0).toLocaleString("th-TH");
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 const DAY_COLORS = ["marigold","pandan","rose","sky"];
-const ZONES = ["เมืองเก่า","ท่าแพ / ตลาดกลางคืน","แม่ริม","ดอยสุเทพ–ดอยปุย","นิมมาน","สันกำแพง / บ่อสร้าง","เดินทาง","อื่นๆ"];
+const ZONES = ["เชียงดาว","แม่ริม / แม่แตง","เมืองเก่า","ท่าแพ / ตลาดกลางคืน","ดอยสุเทพ–ดอยปุย","นิมมาน","สันกำแพง / บ่อสร้าง","เดินทาง","อื่นๆ"];
 const CATS = [
   ["travel","✈️ เดินทาง"],["stay","🏨 ที่พัก"],["car","🚗 รถเช่า / น้ำมัน"],
   ["food","🍜 อาหาร & คาเฟ่"],["ticket","🎫 ค่าเข้า / กิจกรรม"],["shop","🛍️ ช้อป / ของฝาก"],["other","💬 อื่นๆ"]
@@ -322,24 +336,25 @@ function defaults(){
   return {
     v:1,
     days:[
-      { id:uid(), label:"วันที่ 1", dateLabel:"อาทิตย์ 26 ก.ค.", zone:"โซนเมืองเก่า + ถนนคนเดิน", color:DAY_COLORS[0], places:[
+      { id:uid(), label:"วันที่ 1", dateLabel:"อาทิตย์ 26 ก.ค.", zone:"มุ่งหน้าเชียงดาว (ค้างคืนบนดอย)", color:DAY_COLORS[0], places:[
         P("06:30","✈️","บินจากกรุงเทพ → เชียงใหม่","เดินทาง",0,"เผื่อเวลาถึงสนามบิน 1.5 ชม."),
         P("08:30","🚗","รับรถเช่าที่สนามบิน","เดินทาง",0,"ถ่ายรูปรอบคันก่อนรับรถ"),
-        P("09:30","🍜","ข้าวซอยร้านดังเมืองเก่า","เมืองเก่า",200,"มื้อแรกต้องข้าวซอย!"),
-        P("11:00","🏨","เช็คอิน / ฝากกระเป๋าที่พัก","เมืองเก่า",0,""),
-        P("13:00","🛕","วัดพระสิงห์วรมหาวิหาร","เมืองเก่า",0,"แต่งกายสุภาพ"),
-        P("14:30","🛕","วัดเจดีย์หลวง","เมืองเก่า",100,"เจดีย์องค์ใหญ่กลางเมือง"),
-        P("16:00","☕","คาเฟ่ในเมืองเก่า","เมืองเก่า",300,"พักขา จิบกาแฟ"),
-        P("17:30","🚶","ถนนคนเดินท่าแพ (วันอาทิตย์)","ท่าแพ / ตลาดกลางคืน",600,"26 ก.ค. ตรงวันอาทิตย์พอดี ห้ามพลาด!"),
+        P("09:00","🍜","ข้าวซอยมื้อแรก ก่อนขึ้นเหนือ","เมืองเก่า",200,"เติมพลังก่อนออกเดินทาง"),
+        P("10:30","🚗","ขับขึ้นเชียงดาว (เส้น 107)","เดินทาง",0,"~1.5 ชม. วิวสองข้างทางสวย"),
+        P("12:30","🍽️","มื้อเที่ยงเชียงดาว","เชียงดาว",300,""),
+        P("14:00","🕳️","ถ้ำเชียงดาว","เชียงดาว",100,"มีไกด์ตะเกียงพาเข้าถ้ำ"),
+        P("15:30","🛕","วัดถ้ำผาปล่อง","เชียงดาว",0,"บันได 510 ขั้น วิวข้างบนคุ้มมาก"),
+        P("17:00","🏡","เช็คอินที่พักวิวดอยหลวงเชียงดาว","เชียงดาว",0,"จองที่พักฝั่งเห็นดอยหลวง"),
+        P("18:30","🌄","ชมพระอาทิตย์ตก + มื้อเย็นที่พัก","เชียงดาว",500,""),
       ]},
-      { id:uid(), label:"วันที่ 2", dateLabel:"จันทร์ 27 ก.ค.", zone:"โซนแม่ริม (ขึ้นเหนือ)", color:DAY_COLORS[1], places:[
-        P("08:00","🚗","ออกเดินทางไปแม่ริม","เดินทาง",0,"ขับ ~45 นาที"),
-        P("09:00","⛰️","ม่อนแจ่ม + สะพานไม้ไผ่","แม่ริม",200,"หน้าฝนเขียวสวยมาก"),
-        P("11:30","🌸","สวนพฤกษศาสตร์สมเด็จพระนางเจ้าสิริกิติ์","แม่ริม",300,"มีทางเดินลอยฟ้า Canopy Walk"),
-        P("13:00","🍽️","มื้อเที่ยงร้านวิวเขา แม่ริม","แม่ริม",400,""),
-        P("14:30","💦","น้ำตกแม่สา","แม่ริม",200,"หน้าฝนน้ำเยอะ ระวังลื่น"),
-        P("16:00","☕","คาเฟ่วิวนาข้าว แม่ริม","แม่ริม",300,""),
-        P("18:30","🌙","เชียงใหม่ไนท์บาซาร์ + มื้อเย็น","ท่าแพ / ตลาดกลางคืน",700,"ขากลับเข้าเมืองแวะได้เลย"),
+      { id:uid(), label:"วันที่ 2", dateLabel:"จันทร์ 27 ก.ค.", zone:"เชียงดาว → ม่อนแจ่ม → กลับเข้าเมือง", color:DAY_COLORS[1], places:[
+        P("06:30","🌫️","ตื่นชมทะเลหมอก + ดอยหลวงยามเช้า","เชียงดาว",0,"หน้าฝนหมอกสวยสุดๆ"),
+        P("08:00","☕","อาหารเช้า + กาแฟคาเฟ่วิวดอย","เชียงดาว",250,""),
+        P("09:30","🎋","ดอยแม่ตะมาน สะพานไม้ไผ่ + ทุ่งดอกไม้","แม่ริม / แม่แตง",200,"อยู่แม่แตง ขากลับผ่านพอดี"),
+        P("12:00","🍽️","มื้อเที่ยงแม่แตง","แม่ริม / แม่แตง",300,""),
+        P("14:00","⛰️","ม่อนแจ่ม + สะพานไม้ไผ่","แม่ริม / แม่แตง",200,"แวะได้เลย อยู่เส้นขากลับ"),
+        P("16:30","🏨","เช็คอินที่พักในเมือง","เมืองเก่า",0,""),
+        P("18:00","🌙","เชียงใหม่ไนท์บาซาร์ + มื้อเย็น","ท่าแพ / ตลาดกลางคืน",700,"เปิดทุกคืน เดินย่อยมื้อเย็นได้"),
       ]},
       { id:uid(), label:"วันที่ 3", dateLabel:"อังคาร 28 ก.ค.", zone:"โซนดอยสุเทพ + นิมมาน", color:DAY_COLORS[2], places:[
         P("07:30","🚗","ขับขึ้นดอยสุเทพ","เดินทาง",0,"ไปเช้าเลี่ยงรถเยอะ ทางโค้งขับช้าๆ"),
@@ -350,9 +365,10 @@ function defaults(){
         P("17:00","🛍️","One Nimman + เดินเล่น","นิมมาน",500,""),
         P("19:00","🍽️","มื้อเย็นย่านนิมมาน","นิมมาน",600,""),
       ]},
-      { id:uid(), label:"วันที่ 4", dateLabel:"พุธ 29 ก.ค.", zone:"โซนบ่อสร้าง + ซื้อของฝาก", color:DAY_COLORS[3], places:[
-        P("09:00","🌂","หมู่บ้านทำร่มบ่อสร้าง","สันกำแพง / บ่อสร้าง",200,"อยู่ฝั่งตะวันออก ใกล้สันกำแพง"),
-        P("11:00","🍜","มื้อเที่ยง","อื่นๆ",300,""),
+      { id:uid(), label:"วันที่ 4", dateLabel:"พุธ 29 ก.ค.", zone:"เมืองเก่า + ซื้อของฝาก", color:DAY_COLORS[3], places:[
+        P("08:30","🛕","วัดพระสิงห์วรมหาวิหาร","เมืองเก่า",0,"แต่งกายสุภาพ"),
+        P("09:30","🛕","วัดเจดีย์หลวง","เมืองเก่า",100,"เจดีย์องค์ใหญ่กลางเมือง"),
+        P("11:00","🍜","ข้าวซอยร้านดังเมืองเก่า","เมืองเก่า",200,"มื้อส่งท้ายทริป"),
         P("12:30","🛍️","ตลาดวโรรส (กาดหลวง) ซื้อของฝาก","ท่าแพ / ตลาดกลางคืน",800,"ไส้อั่ว แคบหมู น้ำพริกหนุ่ม"),
         P("15:00","🚗","คืนรถเช่าที่สนามบิน","เดินทาง",0,"เติมน้ำมันเต็มถังก่อนคืน"),
         P("17:30","✈️","บินกลับกรุงเทพ","เดินทาง",0,"ถึงบ้านโดยสวัสดิภาพ 🎉"),
@@ -360,7 +376,8 @@ function defaults(){
     ],
     expenses:[
       E("✈️","ตั๋วเครื่องบินไป-กลับ BKK–CNX (2 คน)","travel","AirAsia (จองผ่านแอป)","โปร Double Digit",3200,"","card",3),
-      E("🏨","ที่พัก 3 คืน ย่านเมืองเก่า","stay","Agoda","โค้ดลด 10% + เครดิตเงินคืน",4500,"","installment",3),
+      E("🏕️","ที่พักเชียงดาว 1 คืน (วิวดอยหลวง)","stay","จองผ่านเพจที่พัก / Agoda","",1800,"","card",3),
+      E("🏨","ที่พักในเมือง 2 คืน ย่านเมืองเก่า","stay","Agoda","โค้ดลด 10% + เครดิตเงินคืน",3000,"","installment",3),
       E("🚗","รถเช่า Eco Car 4 วัน","car","Drivehub","คูปองส่วนลดหน้าฝน",3600,"","card",3),
       E("⛽","น้ำมัน + ค่าจอดรถ","car","","",800,"","cash",3),
       E("🍜","ค่าอาหารตลอดทริป","food","","",3500,"","cash",3),
@@ -635,12 +652,45 @@ document.getElementById("expForm").addEventListener("submit", ev=>{
 document.getElementById("addExpBtn").addEventListener("click",()=>openExpDlg(null));
 
 /* ---------- tools ---------- */
+const bakDlg = document.getElementById("bakDlg");
 document.getElementById("exportBtn").addEventListener("click",()=>{
-  const blob = new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  pf("bakText").value = JSON.stringify(S);
+  bakDlg.showModal();
+});
+document.getElementById("bakClose").addEventListener("click",()=>bakDlg.close());
+document.getElementById("bakCopy").addEventListener("click",async()=>{
+  const ta = pf("bakText");
+  ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+  let ok = false;
+  try { await navigator.clipboard.writeText(ta.value); ok = true; }
+  catch(e){ try { ok = document.execCommand("copy"); } catch(e2){} }
+  const btn = document.getElementById("bakCopy");
+  btn.textContent = ok ? "✅ คัดลอกแล้ว!" : "⚠️ กดค้างที่ข้อความแล้วเลือกคัดลอก";
+  setTimeout(()=>{ btn.textContent = "📋 คัดลอก"; }, 2500);
+});
+document.getElementById("bakShare").addEventListener("click",async()=>{
+  const json = pf("bakText").value;
+  try{
+    const file = new File([json], "chiangmai-trip-2026.json", {type:"application/json"});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"ข้อมูลทริปเชียงใหม่"}); return;
+    }
+    if (navigator.share){ await navigator.share({title:"ข้อมูลทริปเชียงใหม่", text:json}); return; }
+  }catch(e){ if (e && e.name === "AbortError") return; }
+  const blob = new Blob([json], {type:"application/json"});
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "chiangmai-trip-2026.json";
-  a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(blob); a.download = "chiangmai-trip-2026.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById("bakRestore").addEventListener("click",()=>{
+  try{
+    const data = JSON.parse(pf("bakText").value);
+    if (!data || !Array.isArray(data.days) || !Array.isArray(data.expenses)) throw new Error("bad");
+    if (confirm("กู้คืนข้อมูลจากข้อความนี้? ข้อมูลปัจจุบันจะถูกแทนที่นะ")){
+      S = data; save(); render(); bakDlg.close();
+    }
+  }catch(e){ alert("ข้อความนี้ไม่ใช่ข้อมูลสำรองที่ถูกต้อง ลองวางใหม่อีกครั้งนะ"); }
 });
 document.getElementById("resetBtn").addEventListener("click",()=>{
   if (confirm("รีเซ็ตกลับเป็นแพลนเริ่มต้น? ข้อมูลที่แก้ไว้จะหายทั้งหมดนะ")){
