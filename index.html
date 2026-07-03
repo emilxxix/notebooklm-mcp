@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Tracker — Emil</title>
+<style>
+  :root{
+    --page:#0d0d0d; --surface:#1a1a19; --surface2:#222220;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#008300;
+    --s5:#9085e9; --s6:#e66767; --s7:#d55181;
+    --good:#0ca30c; --bad:#d03b3b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--page);color:var(--ink);
+       font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+       min-height:100vh;padding:20px 16px 48px}
+  .wrap{max-width:1060px;margin:0 auto}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+         flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  header h1{font-size:20px;font-weight:650;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:12.5px}
+  #storewarn{display:none;background:#3a2b00;border:1px solid #8a6d00;color:#ffd866;
+    font-size:13px;border-radius:10px;padding:10px 14px;margin-bottom:14px;line-height:1.5}
+  nav{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  nav button{background:var(--surface);color:var(--ink2);border:1px solid var(--border);
+             padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer}
+  nav button:hover{color:var(--ink)}
+  nav button.on{background:var(--surface2);color:var(--ink);border-color:rgba(255,255,255,.22);font-weight:600}
+  .tab{display:none}.tab.on{display:block}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;margin-bottom:14px}
+  .tile .lbl{font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+  .tile .val{font-size:44px;font-weight:650;line-height:1.05}
+  .tile .val.mid{font-size:27px}
+  .tile .delta{font-size:14px;margin-top:6px;font-weight:600}
+  .up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--muted)}
+  h2.sec{font-size:13px;font-weight:600;color:var(--ink2);letter-spacing:.4px;
+         text-transform:uppercase;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{color:var(--muted);font-weight:600;text-align:left;font-size:12px;
+     letter-spacing:.3px;padding:8px 10px;border-bottom:1px solid var(--baseline);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid var(--grid);
+     font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.num,th.num{text-align:right}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:1px;flex:none}
+  .legend{list-style:none;font-size:13.5px}
+  .legend li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--grid)}
+  .legend li:last-child{border-bottom:0}
+  .legend .nm{color:var(--ink2);flex:1}
+  .legend .v{font-variant-numeric:tabular-nums}
+  .legend .pc{color:var(--muted);width:52px;text-align:right;font-variant-numeric:tabular-nums}
+  .chartbox{position:relative}
+  .tt{position:absolute;pointer-events:none;background:var(--surface2);
+      border:1px solid var(--border);border-radius:8px;padding:8px 11px;
+      font-size:12.5px;display:none;z-index:5;white-space:nowrap;
+      box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  .tt .t-val{font-size:15px;font-weight:650}
+  .tt .t-lbl{color:var(--muted);margin-top:2px}
+  form .row,.frow{display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:center;margin-bottom:11px}
+  form label,.frow label{font-size:13.5px;color:var(--ink2)}
+  input[type=date],input[type=number],input[type=text],select{
+     background:var(--page);border:1px solid var(--baseline);color:var(--ink);
+     padding:9px 12px;border-radius:8px;font-size:15px;width:100%;max-width:260px;
+     font-variant-numeric:tabular-nums;font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--s1)}
+  .subhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;
+     color:var(--muted);letter-spacing:.4px;text-transform:uppercase;
+     margin:16px 0 9px;padding-top:12px;border-top:1px solid var(--grid)}
+  .btn{background:var(--s1);color:#fff;border:none;padding:10px 22px;border-radius:8px;
+       font-size:14.5px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:var(--surface2);color:var(--ink2);border:1px solid var(--border)}
+  .btn.danger{background:var(--bad)}
+  .btn.sm{padding:6px 12px;font-size:13px}
+  .btn:hover{filter:brightness(1.1)}
+  .msg{font-size:13.5px;margin-top:10px;min-height:18px}
+  .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 8px;border-radius:6px}
+  .del:hover{color:var(--bad)}
+  .del.armed{color:#fff;background:var(--bad)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .hb-row{display:grid;grid-template-columns:minmax(150px,230px) 1fr 96px 54px;gap:10px;align-items:center;
+     padding:5px 4px;border-radius:8px;cursor:pointer}
+  .hb-row:hover{background:var(--surface2)}
+  .hb-name{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+  .hb-track{background:var(--surface2);border-radius:4px;height:14px}
+  .hb-fill{height:100%;border-radius:0 4px 4px 0}
+  .hb-val{font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+  .hb-pc{font-size:12.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+  #d-breakdown tbody tr{cursor:pointer}
+  #d-breakdown tbody tr:hover td{background:var(--surface2)}
+  #he-table input,#he-table select,#ac-table input,#ac-table select{
+     padding:6px 9px;border-radius:6px;font-size:13.5px}
+  .w-name{width:170px!important} .w-val{width:110px!important;text-align:right}
+  .w-sel{width:auto!important;max-width:130px}
+  .ovl{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:50;padding:16px}
+  .ovl.on{display:flex;align-items:flex-start;justify-content:center}
+  .ovl .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+     max-width:500px;width:100%;max-height:86vh;overflow:auto;padding:18px;margin-top:4vh}
+  .ovl .box h3{font-size:16px;font-weight:650;margin-bottom:2px;display:flex;align-items:center}
+  .ovl .box .gname{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  @media (max-width:560px){ .tile .val{font-size:33px}
+    form .row,.frow{grid-template-columns:1fr;gap:4px}
+    .hb-row{grid-template-columns:104px 1fr 82px 46px;gap:6px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>PORTFOLIO TRACKER</h1>
+    <div class="sub">ข้อมูลเก็บในเครื่องนี้เท่านั้น (localStorage) — สำรองด้วยแท็บ “สำรองข้อมูล”</div>
+  </header>
+  <div id="storewarn">⚠️ เบราว์เซอร์/หน้านี้บันทึกข้อมูลถาวรไม่ได้ (localStorage ถูกบล็อก) — ข้อมูลจะหายเมื่อปิดหน้า
+    ให้ใช้ลิงก์เว็บจริงที่ผมส่งให้ หรือกด Export JSON เก็บไว้ก่อนปิดทุกครั้ง</div>
+
+  <nav>
+    <button data-tab="dash" class="on">แดชบอร์ด</button>
+    <button data-tab="add">+ บันทึกรายวัน</button>
+    <button data-tab="hold">รายตัว</button>
+    <button data-tab="acc">กระเป๋า</button>
+    <button data-tab="hist">ประวัติ</button>
+    <button data-tab="bak">สำรองข้อมูล</button>
+  </nav>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <section class="tab on" id="tab-dash">
+    <div class="grid3">
+      <div class="card tile">
+        <div class="lbl">สินทรัพย์รวม • Total assets</div>
+        <div class="val" id="d-total">—</div>
+      </div>
+      <div class="card tile">
+        <div class="lbl">เปลี่ยนจากครั้งก่อน • Change</div>
+        <div class="val mid" id="d-diff">—</div>
+        <div class="delta" id="d-pct"></div>
+      </div>
+      <div class="card tile">
+        <div class="lbl" id="d-since-lbl">ตั้งแต่เริ่มต้น • Since start</div>
+        <div class="val mid" id="d-since">—</div>
+        <div class="delta" id="d-sincepct"></div>
+      </div>
+      <div class="card tile">
+        <div class="lbl">อัปเดตล่าสุด • Last entry</div>
+        <div class="val mid" id="d-date">—</div>
+        <div class="delta flat" id="d-count"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2 class="sec">สัดส่วนตามกลุ่ม • Allocation</h2>
+        <div class="chartbox" id="donut-box" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <svg id="donut" width="170" height="170" viewBox="0 0 170 170" role="img" aria-label="สัดส่วนสินทรัพย์"></svg>
+          <ul class="legend" id="donut-legend" style="flex:1;min-width:200px"></ul>
+          <div class="tt" id="donut-tt"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="sec">มูลค่ารวมตามเวลา • Total value (THB)</h2>
+        <div class="chartbox">
+          <svg id="line" viewBox="0 0 520 240" style="width:100%;height:auto" role="img" aria-label="มูลค่ารวมตามเวลา"></svg>
+          <div class="tt" id="line-tt"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <h2 class="sec">สัดส่วนรายตัว • By holding <span id="hb-asof" style="text-transform:none;font-weight:400;color:var(--muted)"></span></h2>
+      <div id="hbars"></div>
+      <div class="note" id="hb-note" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec">รายละเอียดต่อกระเป๋า • Breakdown (ล่าสุด) — คลิกดูประวัติ</h2>
+      <div style="overflow-x:auto">
+      <table id="d-breakdown">
+        <thead><tr><th>กระเป๋า / รายการ</th><th class="num">มูลค่า (THB)</th><th class="num">% ของพอร์ต</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ ADD ══════════ -->
+  <section class="tab" id="tab-add">
+    <div class="card" style="max-width:600px">
+      <h2 class="sec">บันทึกมูลค่าของวัน</h2>
+      <form id="f">
+        <div class="row"><label for="f-date">วันที่</label><input type="date" id="f-date" required></div>
+        <div class="row"><label for="f-fx">FX (USD→THB)</label><input type="number" step="0.01" id="f-fx" required></div>
+        <div id="f-fields"></div>
+        <div style="margin-top:16px">
+          <button class="btn" type="submit">บันทึก</button>
+        </div>
+        <div class="msg" id="f-msg"></div>
+      </form>
+      <p class="note" style="margin-top:10px">อยากเพิ่มกระเป๋าใหม่ / เปลี่ยนชื่อ → ไปที่แท็บ “กระเป๋า”</p>
+    </div>
+  </section>
+
+  <!-- ══════════ HOLDINGS ══════════ -->
+  <section class="tab" id="tab-hold">
+    <div class="card">
+      <h2 class="sec">มูลค่ารายตัว (อัปเดตเป็นครั้งคราว ไม่ต้องทุกวัน)</h2>
+      <p class="note" style="margin-bottom:12px">
+        หุ้น US กรอกเป็น <b>USD</b> (แปลงบาทด้วย FX ล่าสุดจากบันทึกรายวัน) • กองทุนไทย/ทองคำ กรอกเป็น <b>บาท</b> •
+        เงินสดไม่ต้องกรอก ดึงจากบันทึกรายวันอัตโนมัติ<br>
+        กด “บันทึกรายตัว” ทุกครั้งที่อัปเดต — ระบบเก็บเป็นประวัติรายครั้ง คลิกชื่อในแดชบอร์ดเพื่อดูย้อนหลัง</p>
+      <div style="overflow-x:auto">
+      <table id="he-table">
+        <thead><tr><th>ชื่อ</th><th>กลุ่ม</th><th>สกุล</th><th class="num">มูลค่า</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" id="he-save">บันทึกรายตัว</button>
+        <button class="btn ghost" id="he-add">+ เพิ่มรายการ</button>
+      </div>
+      <div class="msg" id="he-msg"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ WALLET MANAGER ══════════ -->
+  <section class="tab" id="tab-acc">
+    <div class="card" style="max-width:720px">
+      <h2 class="sec">กระเป๋า / รายการที่บันทึกทุกวัน</h2>
+      <p class="note" style="margin-bottom:12px">
+        เปลี่ยนชื่อ เปลี่ยนกลุ่ม หรือเพิ่มกระเป๋าใหม่ (เช่น ทองคำ, ETF, หุ้นรายตัว) ได้ที่นี่ —
+        ช่องกรอกในหน้า “บันทึกรายวัน” จะเปลี่ยนตามอัตโนมัติ</p>
+      <div style="overflow-x:auto">
+      <table id="ac-table">
+        <thead><tr><th>ชื่อ</th><th>กลุ่ม</th><th>สกุล</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" id="ac-save">บันทึกการแก้ไข</button>
+        <button class="btn ghost" id="ac-add">+ เพิ่มกระเป๋า</button>
+      </div>
+      <div class="msg" id="ac-msg"></div>
+      <div id="ac-archived"></div>
+      <p class="note" style="margin-top:12px">
+        การ “ซ่อน” จะเอากระเป๋าออกจากฟอร์มบันทึกรายวัน แต่<b>ประวัติเก่ายังอยู่ครบ</b> กู้คืนได้ตลอด</p>
+    </div>
+  </section>
+
+  <!-- ══════════ HISTORY ══════════ -->
+  <section class="tab" id="tab-hist">
+    <div class="card">
+      <h2 class="sec">ประวัติทั้งหมด (มูลค่าเป็น THB) — กด ✕ สองครั้งเพื่อลบ</h2>
+      <div style="overflow-x:auto">
+      <table id="h-table"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ BACKUP ══════════ -->
+  <section class="tab" id="tab-bak">
+    <div class="card" style="max-width:560px">
+      <h2 class="sec">สำรอง / กู้คืนข้อมูล</h2>
+      <p class="note" style="margin-bottom:14px">
+        ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์นี้ — แนะนำกด Export เก็บไฟล์ไว้เป็นระยะ
+        และใช้ไฟล์เดิมย้ายข้อมูลไปเครื่องอื่นได้</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="b-export">Export JSON</button>
+        <label class="btn ghost" style="display:inline-block;cursor:pointer">Import JSON
+          <input type="file" id="b-import" accept=".json" style="display:none"></label>
+        <button class="btn danger" id="b-clear">ล้างข้อมูลทั้งหมด</button>
+      </div>
+      <div class="msg" id="b-msg"></div>
+    </div>
+  </section>
+</div>
+
+<!-- detail overlay -->
+<div class="ovl" id="ovl">
+  <div class="box">
+    <h3 id="ov-title"></h3>
+    <div class="gname" id="ov-grp"></div>
+    <svg id="ov-spark" viewBox="0 0 440 70" style="width:100%;height:auto;margin-bottom:10px"></svg>
+    <div style="overflow-x:auto">
+    <table id="ov-table">
+      <thead><tr><th>วันที่</th><th class="num">มูลค่า (THB)</th><th class="num">เปลี่ยน</th><th class="num">%</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn ghost" id="ov-close">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ══════════ constants ══════════ */
+const KEY3="emil_portfolio_v2", KEY1="emil_portfolio_v1", KEY2="emil_portfolio_holdings_v1";
+const DEPLOY_EMPTY=true;   /* เวอร์ชันเว็บสาธารณะ เริ่มจากค่าว่าง (กรอกเอง/Import) */
+const SLOT={us:"var(--s1)",fund:"var(--s2)",tax:"var(--s3)",cash:"var(--s4)",
+            gold:"var(--s5)",etf:"var(--s6)",other:"var(--s7)"};
+const GROUPS=[["us","หุ้น US"],["fund","กองทุนรวม"],["tax","ลดหย่อนภาษี"],["cash","เงินสด"],
+              ["gold","ทองคำ"],["etf","ETF"],["other","อื่นๆ"]];
+const GNAME=Object.fromEntries(GROUPS);
+
+const DEF_ACCOUNTS=[
+  {id:"dime",  name:"Dime! หุ้น US",          grp:"us",   cur:"USD", off:false},
+  {id:"wxgen", name:"WealthX ทั่วไป",          grp:"fund", cur:"THB", off:false},
+  {id:"wxtax", name:"WealthX ลดหย่อนภาษี",     grp:"tax",  cur:"THB", off:false},
+  {id:"bank",  name:"เงินสด • ธนาคาร",         grp:"cash", cur:"THB", off:false},
+  {id:"dsave", name:"เงินสด • Dime Save",      grp:"cash", cur:"THB", off:false},
+  {id:"fcd",   name:"เงินสด • Dime FCD (ดอกเบี้ย 4.5%)", grp:"cash", cur:"USD", off:false},
+];
+/* เงินสดธนาคาร = 2,000.00 ตั้งแต่วันแรก */
+const SEED_ENTRIES=[
+  {date:"2026-06-27",fx:32.87,vals:{dime:129.06,wxgen:13681.96,wxtax:3054.18,bank:2000.00,dsave:0.33,fcd:7.34}},
+  {date:"2026-06-30",fx:33.20,vals:{dime:134.03,wxgen:13747.49,wxtax:3047.01,bank:2000.00,dsave:0.33,fcd:7.34}},
+  {date:"2026-07-01",fx:33.24,vals:{dime:135.05,wxgen:13832.44,wxtax:3047.54,bank:2000.00,dsave:0.33,fcd:7.34}},
+  {date:"2026-07-02",fx:33.28,vals:{dime:135.17,wxgen:13832.44,wxtax:3047.54,bank:2000.00,dsave:0.33,fcd:7.34}},
+];
+const HOLD_SEED={snaps:[{asof:"2026-07-02",items:[
+  {name:"TSLA",grp:"us",cur:"USD",val:36.70},
+  {name:"LLY",grp:"us",cur:"USD",val:31.58},
+  {name:"GOOGL",grp:"us",cur:"USD",val:28.95},
+  {name:"NVDA",grp:"us",cur:"USD",val:28.36},
+  {name:"XOM",grp:"us",cur:"USD",val:9.58},
+  {name:"TLUS500-UH-X",grp:"fund",cur:"THB",val:6460.48},
+  {name:"TLWORLD-X",grp:"fund",cur:"THB",val:3229.26},
+  {name:"LHGRID",grp:"fund",cur:"THB",val:3039.96},
+  {name:"TLUSHD-UH",grp:"fund",cur:"THB",val:1102.74},
+  {name:"K-ESGSI-ThaiESG",grp:"tax",cur:"THB",val:3047.54},
+]}]};
+
+/* ══════════ storage (with block detection) ══════════ */
+let storageOK=true;
+try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
+catch(e){ storageOK=false; }
+if(!storageOK) document.getElementById("storewarn").style.display="block";
+
+function jload(k){ try{const s=localStorage.getItem(k); if(s) return JSON.parse(s);}catch(e){} return null; }
+function jsave(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }
+  catch(e){ if(storageOK){storageOK=false; document.getElementById("storewarn").style.display="block";} } }
+
+function migrateV1(arr){
+  return arr.map(e=>({date:e.date,fx:e.fx,vals:{
+    dime:e.usd, wxgen:e.gen, wxtax:e.tax,
+    bank:Math.max(0,Math.round((e.cash-0.33-7.34*e.fx)*100)/100),
+    dsave:0.33, fcd:7.34}}));
+}
+let db=jload(KEY3);
+if(!db){
+  const v1=jload(KEY1);
+  db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),
+      entries:(Array.isArray(v1)&&v1.length)?migrateV1(v1)
+              :(DEPLOY_EMPTY?[]:JSON.parse(JSON.stringify(SEED_ENTRIES)))};
+  saveDb();
+}
+function saveDb(){ jsave(KEY3,db); }
+
+let holds=jload(KEY2);
+if(holds && !holds.snaps){
+  holds={snaps:[{asof:holds.asof||"2026-07-02",items:holds.items||[]}]};
+}
+if(!holds){ holds=DEPLOY_EMPTY?{snaps:[]}:JSON.parse(JSON.stringify(HOLD_SEED)); }
+holds.snaps.forEach(s=>s.items.forEach(h=>{
+  if(h.grp==="dime")h.grp="us"; if(h.grp==="gen")h.grp="fund"; }));
+saveHolds();
+function saveHolds(){ jsave(KEY2,holds); }
+function latestSnap(){
+  if(!holds.snaps.length) return null;
+  return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[holds.snaps.length-1];
+}
+
+/* ══════════ helpers ══════════ */
+const fmt=(n,d=2)=>n.toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sorted=()=>db.entries.slice().sort((a,b)=>a.date<b.date?-1:1);
+const accById=id=>db.accounts.find(a=>a.id===id);
+const active=()=>db.accounts.filter(a=>!a.off);
+function thbVal(e,id){
+  const v=e.vals[id]; if(v==null) return 0;
+  const a=accById(id);
+  return (a&&a.cur==="USD")? v*e.fx : v;
+}
+function totalOf(e){ return Object.keys(e.vals).reduce((s,id)=>s+thbVal(e,id),0); }
+function groupTotals(e){
+  const g={};
+  Object.keys(e.vals).forEach(id=>{
+    const a=accById(id), k=a?a.grp:"other";
+    g[k]=(g[k]||0)+thbVal(e,id);
+  });
+  return g;
+}
+const grpColor=k=>SLOT[k]||SLOT.other;
+function fxForDate(d){
+  const es=sorted(); if(!es.length) return 33;
+  let best=es[0];
+  es.forEach(e=>{ if(e.date<=d) best=e; });
+  return best.fx;
+}
+function armConfirm(btn,fn){
+  if(btn.dataset.armed){ delete btn.dataset.armed; fn(); return; }
+  btn.dataset.armed="1"; btn.classList.add("armed");
+  const old=btn.textContent; btn.textContent="ยืนยัน?";
+  setTimeout(()=>{ if(btn.isConnected && btn.dataset.armed){
+    delete btn.dataset.armed; btn.classList.remove("armed"); btn.textContent=old; } },2600);
+}
+
+/* ══════════ tabs ══════════ */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    document.getElementById("tab-"+b.dataset.tab).classList.add("on");
+    if(b.dataset.tab==="dash") renderDash();
+    if(b.dataset.tab==="hist") renderHist();
+    if(b.dataset.tab==="add") renderForm();
+    if(b.dataset.tab==="hold") renderHoldEditor();
+    if(b.dataset.tab==="acc") renderAcc();
+  });
+});
+
+/* ══════════ dashboard ══════════ */
+function renderDash(){
+  const es=sorted();
+  const totalEl=document.getElementById("d-total");
+  if(!es.length){
+    totalEl.textContent="—";
+    document.getElementById("hb-note").textContent=
+      "ยังไม่มีข้อมูล — กรอกที่แท็บ “+ บันทึกรายวัน” หรือ Import ไฟล์สำรองในแท็บ “สำรองข้อมูล”";
+    return;
+  }
+  const last=es[es.length-1], prev=es.length>1?es[es.length-2]:null, first=es[0];
+  totalEl.textContent=fmt(totalOf(last),0)+" ฿";
+  const diffEl=document.getElementById("d-diff"), pctEl=document.getElementById("d-pct");
+  if(prev){
+    const d=totalOf(last)-totalOf(prev), p=d/totalOf(prev)*100;
+    diffEl.textContent=(d>=0?"+":"−")+fmt(Math.abs(d));
+    diffEl.className="val mid "+(d>0.005?"up":d<-0.005?"down":"flat");
+    pctEl.textContent=(d>=0?"+":"−")+Math.abs(p).toFixed(2)+"%  (เทียบ "+prev.date+")";
+    pctEl.className="delta "+(d>0.005?"up":d<-0.005?"down":"flat");
+  }else{ diffEl.textContent="—"; pctEl.textContent="ยังไม่มีข้อมูลก่อนหน้า"; }
+  const sEl=document.getElementById("d-since"), spEl=document.getElementById("d-sincepct");
+  document.getElementById("d-since-lbl").textContent="ตั้งแต่เริ่มต้น • Since "+first.date;
+  if(es.length>1){
+    const d0=totalOf(last)-totalOf(first), p0=d0/totalOf(first)*100;
+    sEl.textContent=(d0>=0?"+":"−")+fmt(Math.abs(d0));
+    sEl.className="val mid "+(d0>0.005?"up":d0<-0.005?"down":"flat");
+    spEl.textContent=(d0>=0?"+":"−")+Math.abs(p0).toFixed(2)+"%  (ทุนตั้งต้น "+fmt(totalOf(first),0)+")";
+    spEl.className="delta "+(d0>0.005?"up":d0<-0.005?"down":"flat");
+  }else{ sEl.textContent="—"; spEl.textContent=""; }
+  document.getElementById("d-date").textContent=last.date;
+  document.getElementById("d-count").textContent=es.length+" รายการ";
+
+  const t=totalOf(last);
+  const tb=document.querySelector("#d-breakdown tbody"); tb.textContent="";
+  db.accounts.forEach(a=>{
+    if(last.vals[a.id]==null) return;
+    const v=thbVal(last,a.id);
+    const tr=document.createElement("tr");
+    const td1=document.createElement("td");
+    const sw=document.createElement("span"); sw.className="swatch"; sw.style.background=grpColor(a.grp);
+    td1.appendChild(sw); td1.appendChild(document.createTextNode(a.name+(a.off?" (ซ่อนอยู่)":"")));
+    const td2=document.createElement("td"); td2.className="num"; td2.textContent=fmt(v);
+    const td3=document.createElement("td"); td3.className="num"; td3.textContent=(v/t*100).toFixed(1)+"%";
+    tr.append(td1,td2,td3);
+    tr.addEventListener("click",()=>showWalletDetail(a));
+    tb.appendChild(tr);
+  });
+  const trT=document.createElement("tr"); trT.style.fontWeight="650"; trT.style.cursor="default";
+  const c1=document.createElement("td"); c1.textContent="รวมทั้งหมด";
+  const c2=document.createElement("td"); c2.className="num"; c2.textContent=fmt(t);
+  const c3=document.createElement("td"); c3.className="num"; c3.textContent="100%";
+  trT.append(c1,c2,c3); tb.appendChild(trT);
+
+  drawDonut(groupTotals(last),t);
+  drawLine(es);
+  renderHoldBars(last);
+}
+
+/* ── donut ── */
+function polar(cx,cy,r,a){ return [cx+r*Math.cos(a-Math.PI/2), cy+r*Math.sin(a-Math.PI/2)]; }
+function arcPath(cx,cy,r0,r1,a0,a1){
+  const [x0,y0]=polar(cx,cy,r1,a0),[x1,y1]=polar(cx,cy,r1,a1),
+        [x2,y2]=polar(cx,cy,r0,a1),[x3,y3]=polar(cx,cy,r0,a0),
+        big=(a1-a0)>Math.PI?1:0;
+  return `M${x0} ${y0} A${r1} ${r1} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${big} 0 ${x3} ${y3} Z`;
+}
+function drawDonut(gt,t){
+  const svg=document.getElementById("donut"), tt=document.getElementById("donut-tt");
+  svg.textContent="";
+  const parts=GROUPS.filter(([k])=>gt[k]>0).map(([k,n])=>({k,n,v:gt[k]}));
+  const cx=85,cy=85,r0=52,r1=80,pad=2/66;
+  let a=0;
+  parts.forEach(p=>{
+    const frac=p.v/t, a1=a+frac*2*Math.PI;
+    const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d",arcPath(cx,cy,r0,r1,a+pad/2,Math.max(a+pad,a1-pad/2)));
+    path.setAttribute("fill",grpColor(p.k));
+    path.addEventListener("pointermove",ev=>{
+      const box=document.getElementById("donut-box").getBoundingClientRect();
+      tt.style.display="block";
+      tt.style.left=Math.min(ev.clientX-box.left+14,box.width-160)+"px";
+      tt.style.top=(ev.clientY-box.top+14)+"px";
+      tt.textContent="";
+      const v=document.createElement("div"); v.className="t-val";
+      v.textContent=fmt(p.v)+" ฿  ("+(frac*100).toFixed(1)+"%)";
+      const l=document.createElement("div"); l.className="t-lbl"; l.textContent=p.n;
+      tt.append(v,l);
+      svg.querySelectorAll("path").forEach(x=>x.style.opacity=".55");
+      path.style.opacity="1";
+    });
+    path.addEventListener("pointerleave",()=>{ tt.style.display="none";
+      svg.querySelectorAll("path").forEach(x=>x.style.opacity="1"); });
+    svg.appendChild(path);
+    a=a1;
+  });
+  const lg=document.getElementById("donut-legend"); lg.textContent="";
+  parts.forEach(p=>{
+    const li=document.createElement("li");
+    const sw=document.createElement("span"); sw.className="swatch"; sw.style.background=grpColor(p.k);
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=p.n;
+    const v=document.createElement("span"); v.className="v"; v.textContent=fmt(p.v);
+    const pc=document.createElement("span"); pc.className="pc"; pc.textContent=(p.v/t*100).toFixed(1)+"%";
+    li.append(sw,nm,v,pc); lg.appendChild(li);
+  });
+}
+
+/* ── line chart ── */
+function drawLine(es){
+  const svg=document.getElementById("line"), tt=document.getElementById("line-tt");
+  svg.textContent="";
+  const W=520,H=240,L=64,R=16,T=14,B=30;
+  const ts=es.map(totalOf);
+  let lo=Math.min(...ts), hi=Math.max(...ts);
+  if(lo===hi){lo-=100;hi+=100;}
+  const padY=(hi-lo)*0.15; lo-=padY; hi+=padY;
+  const step=Math.pow(10,Math.floor(Math.log10(hi-lo)))/2;
+  lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
+  const X=i=>es.length===1?(L+(W-L-R)/2):L+(W-L-R)*i/(es.length-1);
+  const Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const NS="http://www.w3.org/2000/svg";
+  const el=(n,at)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);return e;};
+  const nTick=4;
+  for(let i=0;i<=nTick;i++){
+    const v=lo+(hi-lo)*i/nTick, y=Y(v);
+    svg.appendChild(el("line",{x1:L,x2:W-R,y1:y,y2:y,stroke:"var(--grid)","stroke-width":1}));
+    const tx=el("text",{x:L-8,y:y+4,"text-anchor":"end","font-size":10.5,fill:"var(--muted)"});
+    tx.textContent=Math.round(v).toLocaleString("th-TH");
+    svg.appendChild(tx);
+  }
+  svg.appendChild(el("line",{x1:L,x2:W-R,y1:H-B,y2:H-B,stroke:"var(--baseline)","stroke-width":1}));
+  const idxs=es.length<=3?es.map((_,i)=>i):[0,Math.floor((es.length-1)/2),es.length-1];
+  [...new Set(idxs)].forEach(i=>{
+    const tx=el("text",{x:X(i),y:H-9,"text-anchor":"middle","font-size":10.5,fill:"var(--muted)"});
+    tx.textContent=es[i].date.slice(5);
+    svg.appendChild(tx);
+  });
+  const pts=es.map((e,i)=>[X(i),Y(totalOf(e))]);
+  if(es.length>1){
+    const dArea="M"+pts.map(p=>p[0]+" "+p[1]).join(" L ")+` L ${pts[pts.length-1][0]} ${H-B} L ${pts[0][0]} ${H-B} Z`;
+    svg.appendChild(el("path",{d:dArea,fill:"var(--s1)",opacity:.1}));
+    svg.appendChild(el("path",{d:"M"+pts.map(p=>p[0]+" "+p[1]).join(" L "),fill:"none",
+      stroke:"var(--s1)","stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  }
+  const cross=el("line",{y1:T,y2:H-B,stroke:"var(--baseline)","stroke-width":1,visibility:"hidden"});
+  svg.appendChild(cross);
+  pts.forEach(p=>{
+    svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:6,fill:"var(--surface)"}));
+    svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:4,fill:"var(--s1)"}));
+  });
+  const lastP=pts[pts.length-1];
+  const lb=el("text",{x:Math.min(lastP[0],W-R-4),y:lastP[1]-12,"text-anchor":"end","font-size":11.5,
+                       "font-weight":650,fill:"var(--ink2)"});
+  lb.textContent=fmt(ts[ts.length-1],0);
+  svg.appendChild(lb);
+  svg.style.touchAction="none";
+  svg.addEventListener("pointermove",ev=>{
+    const r=svg.getBoundingClientRect();
+    const mx=(ev.clientX-r.left)*(W/r.width);
+    let best=0,bd=1e9;
+    pts.forEach((p,i)=>{const d=Math.abs(p[0]-mx); if(d<bd){bd=d;best=i;}});
+    cross.setAttribute("x1",pts[best][0]); cross.setAttribute("x2",pts[best][0]);
+    cross.setAttribute("visibility","visible");
+    const host=svg.parentElement.getBoundingClientRect();
+    tt.style.display="block";
+    const px=pts[best][0]*(r.width/W)+r.left-host.left;
+    tt.style.left=Math.min(px+12,host.width-150)+"px";
+    tt.style.top=(pts[best][1]*(r.height/H)+r.top-host.top-14)+"px";
+    tt.textContent="";
+    const v=document.createElement("div"); v.className="t-val"; v.textContent=fmt(ts[best])+" ฿";
+    const l=document.createElement("div"); l.className="t-lbl"; l.textContent=es[best].date;
+    tt.append(v,l);
+  });
+  svg.addEventListener("pointerleave",()=>{ tt.style.display="none"; cross.setAttribute("visibility","hidden"); });
+}
+
+/* ── by-holding bars ── */
+function holdThb(h,fx){ return h.cur==="USD"? h.val*fx : h.val; }
+function renderHoldBars(last){
+  const box=document.getElementById("hbars"); box.textContent="";
+  const snap=latestSnap();
+  document.getElementById("hb-asof").textContent=snap?("(อัปเดตรายตัว "+snap.asof+" — คลิกดูประวัติ)"):"";
+  const rows=snap?snap.items.map(h=>({name:h.name,grp:h.grp,thb:holdThb(h,last.fx),hold:true})):[];
+  const cashT=Object.keys(last.vals).reduce((s,id)=>{
+    const a=accById(id); return s+((a&&a.grp==="cash")?thbVal(last,id):0);},0);
+  if(cashT>0) rows.push({name:"เงินสด / Cash",grp:"cash",thb:cashT,hold:false});
+  rows.sort((a,b)=>b.thb-a.thb);
+  const t=rows.reduce((s,r)=>s+r.thb,0), mx=rows[0]?rows[0].thb:1;
+  rows.forEach(r=>{
+    const row=document.createElement("div"); row.className="hb-row";
+    const nm=document.createElement("div"); nm.className="hb-name";
+    const sw=document.createElement("span"); sw.className="swatch"; sw.style.background=grpColor(r.grp);
+    nm.appendChild(sw); nm.appendChild(document.createTextNode(r.name)); nm.title=r.name;
+    const tr=document.createElement("div"); tr.className="hb-track";
+    const fl=document.createElement("div"); fl.className="hb-fill";
+    fl.style.width=Math.max(1.5,r.thb/mx*100)+"%";
+    fl.style.background=grpColor(r.grp);
+    tr.appendChild(fl);
+    const v=document.createElement("div"); v.className="hb-val"; v.textContent=fmt(r.thb);
+    const p=document.createElement("div"); p.className="hb-pc"; p.textContent=(r.thb/t*100).toFixed(1)+"%";
+    row.append(nm,tr,v,p);
+    row.addEventListener("click",()=>{
+      if(r.hold) showHoldingDetail(r.name,r.grp);
+      else showCashDetail();
+    });
+    box.appendChild(row);
+  });
+  const note=document.getElementById("hb-note");
+  const dailyT=totalOf(last), gap=Math.abs(t-dailyT);
+  note.textContent=rows.length?("รวมรายตัว "+fmt(t)+" ฿ • รวมจากบันทึกรายวัน ("+last.date+") "+fmt(dailyT)+" ฿"
+    +(gap/dailyT>0.01?" — ต่างกัน "+fmt(gap)+" ฿ (มูลค่ารายตัวอาจยังไม่ได้อัปเดตเป็นวันเดียวกัน)":"")):"";
+}
+
+/* ══════════ detail overlay ══════════ */
+const ovl=document.getElementById("ovl");
+document.getElementById("ov-close").addEventListener("click",()=>ovl.classList.remove("on"));
+ovl.addEventListener("click",ev=>{ if(ev.target===ovl) ovl.classList.remove("on"); });
+document.addEventListener("keydown",ev=>{ if(ev.key==="Escape") ovl.classList.remove("on"); });
+
+function openDetail(title,grpLabel,series){
+  document.getElementById("ov-title").textContent="";
+  const sw=document.createElement("span"); sw.className="swatch";
+  sw.style.background=grpLabel.color; sw.style.width="12px"; sw.style.height="12px";
+  document.getElementById("ov-title").appendChild(sw);
+  document.getElementById("ov-title").appendChild(document.createTextNode(title));
+  document.getElementById("ov-grp").textContent=grpLabel.text;
+  const svg=document.getElementById("ov-spark"); svg.textContent="";
+  const W=440,Hh=70,Lp=6,Rp=6,Tp=8,Bp=8;
+  if(series.length>=2){
+    const vs=series.map(s=>s.thb);
+    let lo=Math.min(...vs),hi=Math.max(...vs); if(lo===hi){lo-=1;hi+=1;}
+    const X=i=>Lp+(W-Lp-Rp)*i/(series.length-1);
+    const Y=v=>Tp+(Hh-Tp-Bp)*(1-(v-lo)/(hi-lo));
+    const NS="http://www.w3.org/2000/svg";
+    const pts=series.map((s,i)=>X(i)+" "+Y(s.thb)).join(" L ");
+    const path=document.createElementNS(NS,"path");
+    path.setAttribute("d","M"+pts);
+    path.setAttribute("fill","none"); path.setAttribute("stroke",grpLabel.color);
+    path.setAttribute("stroke-width","2"); path.setAttribute("stroke-linejoin","round");
+    svg.appendChild(path);
+    series.forEach((s,i)=>{
+      const c1=document.createElementNS(NS,"circle");
+      c1.setAttribute("cx",X(i)); c1.setAttribute("cy",Y(s.thb)); c1.setAttribute("r","5");
+      c1.setAttribute("fill","var(--surface)"); svg.appendChild(c1);
+      const c2=document.createElementNS(NS,"circle");
+      c2.setAttribute("cx",X(i)); c2.setAttribute("cy",Y(s.thb)); c2.setAttribute("r","3.4");
+      c2.setAttribute("fill",grpLabel.color); svg.appendChild(c2);
+    });
+    svg.style.display="";
+  }else{ svg.style.display="none"; }
+  const tb=document.querySelector("#ov-table tbody"); tb.textContent="";
+  const rev=series.slice().reverse();
+  rev.forEach((s,i)=>{
+    const prev=rev[i+1];
+    const tr=document.createElement("tr");
+    const d=document.createElement("td"); d.textContent=s.date;
+    const v=document.createElement("td"); v.className="num"; v.textContent=fmt(s.thb);
+    const df=document.createElement("td"), pc=document.createElement("td");
+    df.className="num"; pc.className="num";
+    if(prev){
+      const dd=s.thb-prev.thb, pp=prev.thb?dd/prev.thb*100:0;
+      df.textContent=(dd>=0?"+":"−")+fmt(Math.abs(dd));
+      pc.textContent=(dd>=0?"+":"−")+Math.abs(pp).toFixed(2)+"%";
+      const cls=dd>0.005?"up":dd<-0.005?"down":"flat";
+      df.classList.add(cls); pc.classList.add(cls);
+    }else{ df.textContent="—"; pc.textContent="—"; }
+    tr.append(d,v,df,pc); tb.appendChild(tr);
+  });
+  ovl.classList.add("on");
+}
+function showHoldingDetail(name,grp){
+  const series=holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)
+    .map(s=>{
+      const it=s.items.find(x=>x.name===name);
+      return it?{date:s.asof,thb:holdThb(it,fxForDate(s.asof))}:null;
+    }).filter(Boolean);
+  openDetail(name,{text:GNAME[grp]||grp,color:grpColor(grp)},series);
+}
+function showWalletDetail(a){
+  const series=sorted().filter(e=>e.vals[a.id]!=null)
+    .map(e=>({date:e.date,thb:thbVal(e,a.id)}));
+  openDetail(a.name,{text:GNAME[a.grp]||a.grp,color:grpColor(a.grp)},series);
+}
+function showCashDetail(){
+  const series=sorted().map(e=>{
+    const c=Object.keys(e.vals).reduce((s,id)=>{
+      const a=accById(id); return s+((a&&a.grp==="cash")?thbVal(e,id):0);},0);
+    return {date:e.date,thb:c};
+  }).filter(s=>s.thb>0);
+  openDetail("เงินสดรวม / Cash",{text:GNAME.cash,color:grpColor("cash")},series);
+}
+
+/* ══════════ daily form ══════════ */
+function renderForm(){
+  const es=sorted(), last=es[es.length-1];
+  document.getElementById("f-date").value=new Date().toISOString().slice(0,10);
+  document.getElementById("f-fx").value=last?last.fx:33.00;
+  const host=document.getElementById("f-fields"); host.textContent="";
+  GROUPS.forEach(([gk,gname])=>{
+    const accs=active().filter(a=>a.grp===gk);
+    if(!accs.length) return;
+    const sh=document.createElement("div"); sh.className="subhead";
+    const sw=document.createElement("span"); sw.className="swatch"; sw.style.background=grpColor(gk);
+    sh.appendChild(sw); sh.appendChild(document.createTextNode(gname));
+    host.appendChild(sh);
+    accs.forEach(a=>{
+      const row=document.createElement("div"); row.className="frow";
+      const lb=document.createElement("label"); lb.htmlFor="fv-"+a.id;
+      lb.textContent=a.name+(a.cur==="USD"?" (USD)":" (THB)");
+      const inp=document.createElement("input");
+      inp.type="number"; inp.step="0.01"; inp.id="fv-"+a.id;
+      if(last && last.vals[a.id]!=null) inp.value=last.vals[a.id];
+      row.append(lb,inp); host.appendChild(row);
+    });
+  });
+}
+document.getElementById("f").addEventListener("submit",ev=>{
+  ev.preventDefault();
+  const date=document.getElementById("f-date").value;
+  const fx=+document.getElementById("f-fx").value;
+  const vals={};
+  active().forEach(a=>{
+    const el=document.getElementById("fv-"+a.id);
+    if(el && el.value!=="") vals[a.id]=+el.value;
+  });
+  const e={date,fx,vals};
+  const i=db.entries.findIndex(x=>x.date===date);
+  const msg=document.getElementById("f-msg");
+  if(i>=0){ db.entries[i]=e; msg.textContent="อัปเดตรายการวันที่ "+date+" แล้ว (มีอยู่เดิม เขียนทับ)"; }
+  else{ db.entries.push(e); msg.textContent="บันทึก "+date+" แล้ว — รวม "+fmt(totalOf(e),0)+" ฿"; }
+  msg.className="msg up";
+  saveDb();
+});
+
+/* ══════════ wallet manager ══════════ */
+function accRow(a){
+  const tr=document.createElement("tr"); tr.dataset.id=a.id;
+  const tdN=document.createElement("td");
+  const iN=document.createElement("input"); iN.type="text"; iN.className="w-name ac-name"; iN.value=a.name;
+  tdN.appendChild(iN);
+  const tdG=document.createElement("td");
+  const sG=document.createElement("select"); sG.className="w-sel ac-grp";
+  GROUPS.forEach(([v,l])=>{const o=document.createElement("option"); o.value=v; o.textContent=l;
+    if(a.grp===v)o.selected=true; sG.appendChild(o);});
+  tdG.appendChild(sG);
+  const tdC=document.createElement("td");
+  const sC=document.createElement("select"); sC.className="w-sel ac-cur";
+  ["THB","USD"].forEach(v=>{const o=document.createElement("option"); o.value=v; o.textContent=v;
+    if(a.cur===v)o.selected=true; sC.appendChild(o);});
+  tdC.appendChild(sC);
+  const tdX=document.createElement("td");
+  const xb=document.createElement("button"); xb.type="button"; xb.className="btn ghost sm";
+  xb.textContent="ซ่อน";
+  xb.addEventListener("click",()=>{
+    const acc=accById(a.id); if(acc){acc.off=true; saveDb(); renderAcc();}
+  });
+  tdX.appendChild(xb);
+  tr.append(tdN,tdG,tdC,tdX);
+  return tr;
+}
+function renderAcc(){
+  const tb=document.querySelector("#ac-table tbody"); tb.textContent="";
+  active().forEach(a=>tb.appendChild(accRow(a)));
+  const ar=document.getElementById("ac-archived"); ar.textContent="";
+  const hidden=db.accounts.filter(a=>a.off);
+  if(hidden.length){
+    const sh=document.createElement("div"); sh.className="subhead"; sh.textContent="ซ่อนอยู่";
+    ar.appendChild(sh);
+    hidden.forEach(a=>{
+      const d=document.createElement("div");
+      d.style.cssText="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13.5px;color:var(--muted)";
+      const nm=document.createElement("span"); nm.textContent=a.name; nm.style.flex="1";
+      const rb=document.createElement("button"); rb.type="button"; rb.className="btn ghost sm";
+      rb.textContent="กู้คืน";
+      rb.addEventListener("click",()=>{const acc=accById(a.id); if(acc){acc.off=false; saveDb(); renderAcc();}});
+      d.append(nm,rb); ar.appendChild(d);
+    });
+  }
+}
+document.getElementById("ac-add").addEventListener("click",()=>{
+  db.accounts.push({id:"a"+Date.now(),name:"กระเป๋าใหม่",grp:"other",cur:"THB",off:false});
+  saveDb(); renderAcc();
+});
+document.getElementById("ac-save").addEventListener("click",()=>{
+  document.querySelectorAll("#ac-table tbody tr").forEach(tr=>{
+    const a=accById(tr.dataset.id); if(!a) return;
+    const nm=tr.querySelector(".ac-name").value.trim();
+    if(nm) a.name=nm;
+    a.grp=tr.querySelector(".ac-grp").value;
+    a.cur=tr.querySelector(".ac-cur").value;
+  });
+  saveDb();
+  const m=document.getElementById("ac-msg");
+  m.textContent="บันทึกการแก้ไขแล้ว"; m.className="msg up";
+  renderAcc();
+});
+
+/* ══════════ holdings editor ══════════ */
+function renderHoldEditor(){
+  const tb=document.querySelector("#he-table tbody"); tb.textContent="";
+  const snap=latestSnap();
+  (snap?snap.items:[]).forEach(h=>tb.appendChild(heRow(h)));
+}
+function heRow(h){
+  const tr=document.createElement("tr");
+  const tdN=document.createElement("td");
+  const iN=document.createElement("input"); iN.type="text"; iN.className="w-name he-name"; iN.value=h.name; tdN.appendChild(iN);
+  const tdG=document.createElement("td");
+  const sG=document.createElement("select"); sG.className="w-sel";
+  GROUPS.filter(([v])=>v!=="cash").forEach(([v,l])=>{
+    const o=document.createElement("option"); o.value=v; o.textContent=l;
+    if(h.grp===v)o.selected=true; sG.appendChild(o);});
+  tdG.appendChild(sG);
+  const tdC=document.createElement("td");
+  const sC=document.createElement("select"); sC.className="w-sel";
+  ["THB","USD"].forEach(v=>{const o=document.createElement("option"); o.value=v; o.textContent=v;
+    if(h.cur===v)o.selected=true; sC.appendChild(o);});
+  tdC.appendChild(sC);
+  const tdV=document.createElement("td"); tdV.className="num";
+  const iV=document.createElement("input"); iV.className="w-val he-val"; iV.type="number";
+  iV.step="0.01"; iV.value=h.val; tdV.appendChild(iV);
+  const tdX=document.createElement("td");
+  const xb=document.createElement("button"); xb.className="del"; xb.textContent="✕"; xb.type="button";
+  xb.title="กด 2 ครั้งเพื่อลบ";
+  xb.addEventListener("click",()=>armConfirm(xb,()=>tr.remove()));
+  tdX.appendChild(xb);
+  tr.append(tdN,tdG,tdC,tdV,tdX);
+  return tr;
+}
+document.getElementById("he-add").addEventListener("click",()=>{
+  document.querySelector("#he-table tbody").appendChild(heRow({name:"",grp:"us",cur:"USD",val:0}));
+});
+document.getElementById("he-save").addEventListener("click",()=>{
+  const items=[];
+  document.querySelectorAll("#he-table tbody tr").forEach(tr=>{
+    const name=tr.querySelector(".he-name").value.trim();
+    const sel=tr.querySelectorAll("select");
+    const val=+tr.querySelector(".he-val").value;
+    if(name && val>0) items.push({name,grp:sel[0].value,cur:sel[1].value,val});
+  });
+  const today=new Date().toISOString().slice(0,10);
+  holds.snaps=holds.snaps.filter(s=>s.asof!==today);
+  holds.snaps.push({asof:today,items});
+  saveHolds();
+  const m=document.getElementById("he-msg");
+  m.textContent="บันทึกรายตัว "+items.length+" รายการแล้ว ("+today+") — เก็บเป็นประวัติครั้งที่ "+holds.snaps.length;
+  m.className="msg up";
+});
+
+/* ══════════ history ══════════ */
+function renderHist(){
+  const es=sorted();
+  const thead=document.querySelector("#h-table thead"); thead.textContent="";
+  const cols=db.accounts.filter(a=>es.some(e=>e.vals[a.id]!=null));
+  const trh=document.createElement("tr");
+  ["วันที่",...cols.map(a=>a.name),"รวม","เปลี่ยน","%",""].forEach((h,i)=>{
+    const th=document.createElement("th"); if(i>0)th.className="num";
+    th.textContent=h; trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  const tb=document.querySelector("#h-table tbody"); tb.textContent="";
+  es.forEach((e,i)=>{
+    const tr=document.createElement("tr");
+    const tdD=document.createElement("td"); tdD.textContent=e.date; tr.appendChild(tdD);
+    cols.forEach(a=>{
+      const td=document.createElement("td"); td.className="num";
+      td.textContent=e.vals[a.id]!=null?fmt(thbVal(e,a.id)):"·";
+      tr.appendChild(td);
+    });
+    const tdT=document.createElement("td"); tdT.className="num"; tdT.style.fontWeight="650";
+    tdT.textContent=fmt(totalOf(e)); tr.appendChild(tdT);
+    const dtd=document.createElement("td"), ptd=document.createElement("td");
+    dtd.className="num"; ptd.className="num";
+    if(i>0){
+      const d=totalOf(e)-totalOf(es[i-1]), p=d/totalOf(es[i-1])*100;
+      dtd.textContent=(d>=0?"+":"−")+fmt(Math.abs(d));
+      ptd.textContent=(d>=0?"+":"−")+Math.abs(p).toFixed(2)+"%";
+      const cls=d>0.005?"up":d<-0.005?"down":"flat";
+      dtd.className="num "+cls; ptd.className="num "+cls;
+    }else{ dtd.textContent="—"; ptd.textContent="—"; }
+    tr.append(dtd,ptd);
+    const xtd=document.createElement("td");
+    const xb=document.createElement("button"); xb.className="del"; xb.textContent="✕"; xb.type="button";
+    xb.title="กด 2 ครั้งเพื่อลบ";
+    xb.addEventListener("click",()=>armConfirm(xb,()=>{
+      db.entries=db.entries.filter(x=>x.date!==e.date); saveDb(); renderHist();
+    }));
+    xtd.appendChild(xb); tr.appendChild(xtd);
+    tb.appendChild(tr);
+  });
+}
+
+/* ══════════ backup ══════════ */
+document.getElementById("b-export").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({v:3,accounts:db.accounts,entries:db.entries,holdings:holds},null,2)],
+                      {type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="portfolio-backup-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  document.getElementById("b-msg").textContent="ดาวน์โหลดไฟล์สำรองแล้ว";
+  document.getElementById("b-msg").className="msg up";
+});
+document.getElementById("b-import").addEventListener("change",ev=>{
+  const file=ev.target.files[0]; if(!file)return;
+  const msg=document.getElementById("b-msg");
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(d && (d.v===2||d.v===3) && Array.isArray(d.accounts) && Array.isArray(d.entries)){
+        db={accounts:d.accounts,entries:d.entries}; saveDb();
+        if(d.holdings){
+          holds=d.holdings.snaps?d.holdings:{snaps:[{asof:d.holdings.asof||"",items:d.holdings.items||[]}]};
+          saveHolds();
+        }
+      }else{
+        const entries=Array.isArray(d)?d:(d&&d.entries);
+        if(!Array.isArray(entries)||!entries.every(x=>x.date&&typeof x.usd==="number")) throw 0;
+        db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),entries:migrateV1(entries)}; saveDb();
+      }
+      msg.textContent="กู้คืนข้อมูล "+db.entries.length+" รายการแล้ว"; msg.className="msg up";
+      renderDash();
+    }catch(e){ msg.textContent="ไฟล์ไม่ถูกต้อง"; msg.className="msg down"; }
+  };
+  rd.readAsText(file);
+});
+document.getElementById("b-clear").addEventListener("click",ev=>{
+  armConfirm(ev.target,()=>{
+    db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),entries:[]}; saveDb();
+    holds={snaps:[]}; saveHolds();
+    renderDash(); renderHist();
+    document.getElementById("b-msg").textContent="ล้างข้อมูลแล้ว (โครงกระเป๋ายังอยู่)";
+    document.getElementById("b-msg").className="msg down";
+  });
+});
+
+renderDash();
+</script>
+</body>
+</html>
