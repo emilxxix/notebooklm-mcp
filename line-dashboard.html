@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>พอร์ตของฉัน</title>
+<style>
+  :root{
+    --page:#120f0c; --surface:#1c1712; --surface2:#262019;
+    --ink:#fbf8f3; --ink2:#cdbfa9; --muted:#8f8574;
+    --border:rgba(255,255,255,.08); --grid:#2c241a;
+    --gold:#eda100; --green:#1baf7a; --blue:#3987e5;
+    --violet:#9085e9; --rose:#d55181;
+    --good:#0ca30c; --bad:#e66767;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--page)}
+  body{color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+       min-height:100vh;padding:14px 14px 40px}
+  .wrap{max-width:460px;margin:0 auto}
+
+  .banner{background:#3a2b00;border:1px solid #8a6d00;color:#ffd866;font-size:12px;
+    border-radius:10px;padding:9px 12px;margin-bottom:12px;line-height:1.5;display:none}
+  .banner.on{display:block}
+
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  header .label{font-size:12px;color:var(--muted);letter-spacing:.3px}
+  header .stamp{font-size:11px;color:var(--muted);background:var(--surface);
+    border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-variant-numeric:tabular-nums}
+
+  .hero{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:18px 18px 16px;margin-bottom:10px}
+  .hero .lbl{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .hero .num{font-size:38px;font-weight:700;color:var(--gold);line-height:1.05;
+    font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .hero .chip{display:inline-flex;align-items:center;gap:4px;margin-top:9px;
+    font-size:13px;font-weight:600;padding:4px 10px;border-radius:20px;
+    font-variant-numeric:tabular-nums}
+  .chip.up{background:rgba(12,163,12,.16);color:#4fd15c}
+  .chip.down{background:rgba(230,103,103,.16);color:#ff8f8f}
+  .chip.flat{background:var(--surface2);color:var(--muted)}
+
+  .statpair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .statpair .cell{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+  .statpair .cell .lbl{font-size:11px;color:var(--muted);margin-bottom:5px}
+  .statpair .cell .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .statpair .cell .v.up{color:#4fd15c} .statpair .cell .v.down{color:#ff8f8f} .statpair .cell .v.flat{color:var(--ink2)}
+  .statpair .cell .sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:15px 16px;margin-bottom:10px}
+  .card h2{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;
+    text-transform:uppercase;margin-bottom:12px}
+
+  .stackbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface2);margin-bottom:12px}
+  .stackbar .seg{height:100%}
+  .glegend{display:flex;flex-wrap:wrap;gap:8px 14px}
+  .glegend .item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
+  .glegend .dot{width:8px;height:8px;border-radius:3px;flex:none}
+  .glegend .pc{color:var(--muted);font-variant-numeric:tabular-nums}
+
+  .hrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--grid)}
+  .hrow:last-child{border-bottom:none}
+  .hrow .dot{width:8px;height:8px;border-radius:3px;flex:none}
+  .hrow .nm{flex:1;font-size:13.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hrow .v{font-size:13.5px;font-variant-numeric:tabular-nums;font-weight:600}
+  .hrow .pc{font-size:11.5px;color:var(--muted);width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+  .sparkbox{position:relative}
+  .sparklbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:4px}
+
+  footer{text-align:center;margin-top:16px}
+  footer .refresh{background:var(--surface);border:1px solid var(--border);color:var(--ink2);
+    padding:9px 20px;border-radius:20px;font-size:12.5px;cursor:pointer}
+  footer .refresh:active{background:var(--surface2)}
+  footer .note{font-size:10.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+  footer .close{display:none;margin-top:10px}
+  footer .close.on{display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner" id="banner"></div>
+
+  <header>
+    <div class="label">พอร์ตของฉัน</div>
+    <div class="stamp" id="stamp">—</div>
+  </header>
+
+  <div class="hero">
+    <div class="lbl">สินทรัพย์รวม</div>
+    <div class="num" id="h-total">—</div>
+    <span class="chip flat" id="h-chip">—</span>
+  </div>
+
+  <div class="statpair">
+    <div class="cell">
+      <div class="lbl">วันนี้</div>
+      <div class="v flat" id="s-today">—</div>
+      <div class="sub" id="s-today-sub"></div>
+    </div>
+    <div class="cell">
+      <div class="lbl">ตั้งแต่เริ่มต้น</div>
+      <div class="v flat" id="s-since">—</div>
+      <div class="sub" id="s-since-sub"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>สัดส่วนพอร์ต</h2>
+    <div class="stackbar" id="bar"></div>
+    <div class="glegend" id="legend"></div>
+  </div>
+
+  <div class="card">
+    <h2>มูลค่ารายตัว</h2>
+    <div id="holdings"></div>
+  </div>
+
+  <div class="card">
+    <h2>แนวโน้มมูลค่ารวม</h2>
+    <div class="sparkbox">
+      <svg id="spark" viewBox="0 0 400 90" style="width:100%;height:auto"></svg>
+      <div class="sparklbl"><span id="spark-lo"></span><span id="spark-hi"></span></div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="refresh" id="refresh">↻ รีเฟรช</button>
+    <button class="refresh close" id="closeBtn">ปิดหน้าต่าง</button>
+    <div class="note" id="note">กำลังโหลดข้อมูล…</div>
+  </footer>
+
+</div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+"use strict";
+/* ═══ ตั้งค่า: วางลิงก์ Google Apps Script Web App ตรงนี้ ═══ */
+const API_URL = "";              // เช่น "https://script.google.com/macros/s/XXXXX/exec"
+const LIFF_ID = "";              // เช่น "1234567890-abcdEFGH" (จาก LINE Developers Console)
+
+const GC = {us:"#3987e5",fund:"#1baf7a",tax:"#eda100",cash:"#9085e9",gold:"#eda100",etf:"#e66767",other:"#d55181"};
+const GN = {us:"หุ้น US",fund:"กองทุนรวม",tax:"ลดหย่อนภาษี",cash:"เงินสด",gold:"ทองคำ",etf:"ETF",other:"อื่นๆ"};
+const fmt=(n,d=2)=>Number(n).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+const cls=n=>n>0.005?"up":n<-0.005?"down":"flat";
+const sign=n=>n>=0?"+":"−";
+
+/* ═══ ข้อมูลตัวอย่าง (ใช้แสดงผลจนกว่าจะเชื่อม API_URL จริง) ═══ */
+const DEMO = {
+  updated:"2026-07-02 17:10",
+  entries:[
+    {date:"2026-06-27", total:26652.28},
+    {date:"2026-06-30", total:26920.66},
+    {date:"2026-07-01", total:27045.69},
+    {date:"2026-07-02", total:26988.51}
+  ],
+  groups:[
+    {key:"fund", value:13761.33},
+    {key:"cash", value:5676.95},
+    {key:"us",   value:4388.01},
+    {key:"tax",  value:3054.04}
+  ],
+  holdings:[
+    {name:"TLUS500-UH-X", grp:"fund", value:6437.37, pct:7.29},
+    {name:"เงินสด / Cash", grp:"cash", value:5676.95, pct:null},
+    {name:"TLWORLD-X", grp:"fund", value:3221.59, pct:7.39},
+    {name:"K-ESGSI-ThaiESG", grp:"tax", value:3054.04, pct:1.80},
+    {name:"LHGRID", grp:"fund", value:2984.16, pct:-0.53},
+    {name:"TSLA", grp:"us", value:1124.19, pct:-2.98},
+    {name:"LLY", grp:"us", value:1065.03, pct:7.40},
+    {name:"TLUSHD-UH", grp:"fund", value:1118.21, pct:3.74},
+    {name:"GOOGL", grp:"us", value:955.13, pct:-3.67},
+    {name:"NVDA", grp:"us", value:925.68, pct:-6.63},
+    {name:"XOM", grp:"us", value:318.76, pct:-3.49}
+  ]
+};
+
+let liffReady=false;
+function tryLiff(){
+  if(!LIFF_ID || typeof liff==="undefined") return;
+  liff.init({liffId:LIFF_ID}).then(()=>{
+    liffReady=true;
+    if(liff.isInClient()){ document.getElementById("closeBtn").classList.add("on"); }
+  }).catch(()=>{});
+}
+document.getElementById("closeBtn").addEventListener("click",()=>{
+  if(liffReady && liff.isInClient()) liff.closeWindow();
+});
+
+async function loadData(){
+  const banner=document.getElementById("banner"), note=document.getElementById("note");
+  if(!API_URL){
+    banner.textContent="⚠️ นี่คือข้อมูลตัวอย่าง — ยังไม่ได้เชื่อมกับ Google Sheet จริง (ใส่ API_URL ในโค้ด)";
+    banner.classList.add("on");
+    render(DEMO);
+    note.textContent="โหมดตัวอย่าง";
+    return;
+  }
+  try{
+    const res=await fetch(API_URL,{cache:"no-store"});
+    if(!res.ok) throw new Error("bad response");
+    const data=await res.json();
+    render(data);
+    note.textContent="อัปเดตล่าสุดจาก Google Sheet";
+  }catch(e){
+    banner.textContent="⚠️ ดึงข้อมูลจริงไม่สำเร็จ — แสดงข้อมูลตัวอย่างแทน";
+    banner.classList.add("on");
+    render(DEMO);
+    note.textContent="โหมดตัวอย่าง (เชื่อมต่อ API ล้มเหลว)";
+  }
+}
+document.getElementById("refresh").addEventListener("click",loadData);
+
+function render(d){
+  document.getElementById("stamp").textContent=d.updated||"—";
+
+  const entries=d.entries||[];
+  const last=entries[entries.length-1], prev=entries[entries.length-2], first=entries[0];
+  const total=last?last.total:0;
+
+  document.getElementById("h-total").textContent=fmt(total,0)+" ฿";
+  const chip=document.getElementById("h-chip");
+  if(prev){
+    const diff=total-prev.total, pct=prev.total?diff/prev.total*100:0, c=cls(diff);
+    chip.className="chip "+c;
+    chip.textContent=sign(diff)+fmt(Math.abs(diff))+"  ("+sign(diff)+Math.abs(pct).toFixed(2)+"%)";
+  }else{ chip.className="chip flat"; chip.textContent="ไม่มีข้อมูลเทียบ"; }
+
+  function stat(elV,elSub,base){
+    if(!base){ document.getElementById(elV).textContent="—"; return; }
+    const diff=total-base.total, pct=base.total?diff/base.total*100:0, c=cls(diff);
+    const v=document.getElementById(elV); v.className="v "+c;
+    v.textContent=sign(diff)+fmt(Math.abs(diff),0);
+    document.getElementById(elSub).textContent=sign(diff)+Math.abs(pct).toFixed(2)+"%";
+  }
+  stat("s-today","s-today-sub",prev);
+  stat("s-since","s-since-sub",first!==last?first:null);
+
+  const groups=(d.groups||[]).filter(g=>g.value>0).sort((a,b)=>b.value-a.value);
+  const gt=groups.reduce((s,g)=>s+g.value,0);
+  const bar=document.getElementById("bar"); bar.textContent="";
+  groups.forEach(g=>{
+    const seg=document.createElement("div"); seg.className="seg";
+    seg.style.width=(g.value/gt*100)+"%";
+    seg.style.background=GC[g.key]||GC.other;
+    bar.appendChild(seg);
+  });
+  const lg=document.getElementById("legend"); lg.textContent="";
+  groups.forEach(g=>{
+    const it=document.createElement("div"); it.className="item";
+    const dot=document.createElement("span"); dot.className="dot"; dot.style.background=GC[g.key]||GC.other;
+    const nm=document.createElement("span"); nm.textContent=GN[g.key]||g.key;
+    const pc=document.createElement("span"); pc.className="pc"; pc.textContent=(g.value/gt*100).toFixed(1)+"%";
+    it.append(dot,nm,pc); lg.appendChild(it);
+  });
+
+  const hb=document.getElementById("holdings"); hb.textContent="";
+  (d.holdings||[]).slice().sort((a,b)=>b.value-a.value).forEach(h=>{
+    const row=document.createElement("div"); row.className="hrow";
+    const dot=document.createElement("span"); dot.className="dot"; dot.style.background=GC[h.grp]||GC.other;
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=h.name;
+    const v=document.createElement("span"); v.className="v"; v.textContent=fmt(h.value,0);
+    const pc=document.createElement("span"); pc.className="pc";
+    if(h.pct!=null){ pc.textContent=sign(h.pct)+Math.abs(h.pct).toFixed(1)+"%"; pc.style.color=h.pct>=0?"#4fd15c":"#ff8f8f"; }
+    row.append(dot,nm,v,pc); hb.appendChild(row);
+  });
+
+  const svg=document.getElementById("spark"); svg.textContent="";
+  if(entries.length>=2){
+    const vs=entries.map(e=>e.total);
+    let lo=Math.min(...vs),hi=Math.max(...vs); if(lo===hi){lo-=1;hi+=1;}
+    const W=400,H=90,Lp=4,Rp=4,Tp=8,Bp=8;
+    const X=i=>Lp+(W-Lp-Rp)*i/(entries.length-1);
+    const Y=v=>Tp+(H-Tp-Bp)*(1-(v-lo)/(hi-lo));
+    const NS="http://www.w3.org/2000/svg";
+    const grad=document.createElementNS(NS,"linearGradient"); grad.id="sg";
+    grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","0"); grad.setAttribute("y2","1");
+    grad.innerHTML='<stop offset="0%" stop-color="#eda100" stop-opacity="0.35"/><stop offset="100%" stop-color="#eda100" stop-opacity="0"/>';
+    const defs=document.createElementNS(NS,"defs"); defs.appendChild(grad); svg.appendChild(defs);
+    const pts=entries.map((e,i)=>X(i)+" "+Y(e.total));
+    const area=document.createElementNS(NS,"path");
+    area.setAttribute("d","M"+pts.join(" L ")+` L ${X(entries.length-1)} ${H-Bp} L ${X(0)} ${H-Bp} Z`);
+    area.setAttribute("fill","url(#sg)"); svg.appendChild(area);
+    const line=document.createElementNS(NS,"path");
+    line.setAttribute("d","M"+pts.join(" L "));
+    line.setAttribute("fill","none"); line.setAttribute("stroke","#eda100");
+    line.setAttribute("stroke-width","2.4"); line.setAttribute("stroke-linejoin","round"); line.setAttribute("stroke-linecap","round");
+    svg.appendChild(line);
+    entries.forEach((e,i)=>{
+      const c=document.createElementNS(NS,"circle");
+      c.setAttribute("cx",X(i)); c.setAttribute("cy",Y(e.total));
+      c.setAttribute("r", i===entries.length-1?4:2.6);
+      c.setAttribute("fill", i===entries.length-1?"#eda100":"#8f8574");
+      svg.appendChild(c);
+    });
+    document.getElementById("spark-lo").textContent=entries[0].date;
+    document.getElementById("spark-hi").textContent=entries[entries.length-1].date;
+  }
+}
+
+tryLiff();
+loadData();
+</script>
+</body>
+</html>
