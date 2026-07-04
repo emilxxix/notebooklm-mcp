@@ -65,7 +65,9 @@
   .hero .sub{margin-top:6px;color:var(--ink2);font-weight:600;position:relative;z-index:2}
   .hero .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;position:relative;z-index:2}
   .badge{background:var(--card);border:1.5px solid var(--line);border-radius:999px;
-    padding:5px 14px;font-size:14px;font-weight:700;box-shadow:var(--shadow)}
+    padding:5px 14px;font-size:14px;font-weight:700;box-shadow:var(--shadow);color:var(--ink)}
+  button.badge{appearance:none;font:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:34px}
+  button.badge:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 
   /* ---------- tab bar ---------- */
   .tabbar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:50;
@@ -74,7 +76,7 @@
   .tabbar button{
     appearance:none;border:0;background:transparent;color:var(--ink2);
     font:inherit;font-weight:700;font-size:15px;padding:10px 18px;border-radius:999px;cursor:pointer;
-    display:flex;align-items:center;gap:7px;min-height:44px}
+    display:flex;align-items:center;gap:7px;min-height:44px;white-space:nowrap}
   .tabbar button .ic{font-size:18px}
   .tabbar button.on{background:var(--marigold-soft);color:var(--ink)}
   .tabbar button:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
@@ -102,7 +104,8 @@
   .rowbtns{display:flex;gap:6px;flex-shrink:0}
 
   /* ---------- itinerary ---------- */
-  .day-head{padding:14px 18px;display:flex;align-items:center;gap:12px}
+  .day-head{padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .day-head .day-chips{flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap}
   .day-head .dot{width:46px;height:46px;border-radius:16px;display:flex;align-items:center;justify-content:center;
     font-size:22px;flex-shrink:0}
   .day-head .t1{font-weight:800;font-size:17px}
@@ -187,12 +190,13 @@
 
 <header class="hero">
   <div class="sun" aria-hidden="true"></div>
-  <h1>ทริปเชียงใหม่ 🌸</h1>
-  <div class="sub">อาทิตย์ 26 – พุธ 29 กรกฎาคม 2569 · 4 วัน 3 คืน</div>
+  <h1 id="tripTitle"></h1>
+  <div class="sub" id="tripSub"></div>
   <div class="badges">
     <span class="badge">⏳ <span id="countdown" class="num"></span></span>
     <span class="badge">📍 <span id="placeCount" class="num"></span> ที่เที่ยว</span>
     <span class="badge">💰 งบ <span id="heroBudget" class="num"></span></span>
+    <button class="badge" id="editTripBtn">✏️ แก้ชื่อ/วันเดินทาง</button>
   </div>
   <div class="hill back" aria-hidden="true"></div>
   <div class="hill front" aria-hidden="true"></div>
@@ -206,22 +210,19 @@
     <div id="dayList"></div>
   </section>
 
-  <section class="tab" id="tab-budget" aria-label="งบประมาณ">
-    <h2>💰 บันทึกค่าใช้จ่าย</h2>
-    <p class="hint">จดไว้เลยว่าแต่ละอย่างตั้งงบเท่าไร จ่ายจริงเท่าไร จองผ่านไหน ใช้โปรอะไร และผ่อนบัตรกี่เดือน</p>
-    <div class="card"><div id="expList"></div>
-      <div class="addrow"><button class="act" id="addExpBtn">＋ เพิ่มรายการค่าใช้จ่าย</button></div>
-    </div>
-  </section>
-
-  <section class="tab" id="tab-summary" aria-label="สรุป">
-    <h2>📊 สรุปทริป</h2>
+  <section class="tab" id="tab-budget" aria-label="เงินทริป">
+    <h2>💰 เงินทริป</h2>
     <div class="tiles" id="tiles"></div>
     <div class="card"><div class="pad">
       <strong>ภาพรวมการใช้เงิน</strong>
       <div id="overallBar"></div>
       <div style="margin-top:16px" id="catBars"></div>
     </div></div>
+    <h2 style="margin-top:20px">🧾 รายการค่าใช้จ่าย</h2>
+    <p class="hint">จดไว้เลยว่าแต่ละอย่างตั้งงบเท่าไร จ่ายจริงเท่าไร จองผ่านไหน ใช้โปรอะไร และผ่อนบัตรกี่เดือน</p>
+    <div class="card"><div id="expList"></div>
+      <div class="addrow"><button class="act" id="addExpBtn">＋ เพิ่มรายการค่าใช้จ่าย</button></div>
+    </div>
     <div class="card"><div class="pad">
       <strong>💳 รายการผ่อนบัตรเครดิต</strong>
       <div id="instList" style="margin-top:8px"></div>
@@ -231,17 +232,44 @@
       <div class="factgrid" style="margin-top:10px" id="facts"></div>
       <div class="toolsrow" style="margin-top:14px">
         <button class="act" id="exportBtn">📤 สำรอง / กู้คืนข้อมูล</button>
-        <button class="act ghost-danger" id="resetBtn">🧹 รีเซ็ตเป็นแพลนเริ่มต้น</button>
+        <button class="act" id="sampleBtn">🌸 โหลดแพลนเชียงใหม่ (ตัวอย่าง)</button>
+        <button class="act ghost-danger" id="resetBtn">🧹 เริ่มทริปใหม่ทั้งหมด</button>
       </div>
     </div></div>
   </section>
 </div>
 
 <nav class="tabbar" aria-label="เมนู">
-  <button class="on" data-tab="tab-plan"><span class="ic">📅</span>แพลน</button>
-  <button data-tab="tab-budget"><span class="ic">💰</span>งบ</button>
-  <button data-tab="tab-summary"><span class="ic">📊</span>สรุป</button>
+  <button class="on" data-tab="tab-plan"><span class="ic">📅</span>แพลนเที่ยว</button>
+  <button data-tab="tab-budget"><span class="ic">💰</span>เงินทริป</button>
 </nav>
+
+<dialog id="tripDlg">
+  <form method="dialog" class="dpad" id="tripForm">
+    <h3 id="tripDlgTitle">แก้ไขทริป</h3>
+    <div class="field"><label for="tfTitle">ชื่อทริป *</label><input id="tfTitle" required placeholder="เช่น ทริปเชียงใหม่ 🌸"></div>
+    <div class="f2">
+      <div class="field"><label for="tfStart">วันแรกของทริป</label><input id="tfStart" type="date" required></div>
+      <div class="field"><label for="tfEnd">วันสุดท้าย</label><input id="tfEnd" type="date" required></div>
+    </div>
+    <p class="hint" id="tripDlgHint" style="margin:2px 0 0">จำนวนวันในหน้าแพลนจะปรับตามช่วงวันที่เลือกอัตโนมัติ</p>
+    <div class="dbtns">
+      <button class="act" value="cancel" formnovalidate>ยกเลิก</button>
+      <button class="act primary" value="ok">บันทึก</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dayDlg">
+  <form method="dialog" class="dpad" id="dayForm">
+    <h3>ตั้งชื่อธีม/โซนของวัน</h3>
+    <div class="field"><label for="dfZone">เช่น "โซนเมืองเก่า" หรือ "วันขึ้นดอย"</label><input id="dfZone" placeholder="เว้นว่างได้"></div>
+    <div class="dbtns">
+      <button class="act" value="cancel" formnovalidate>ยกเลิก</button>
+      <button class="act primary" value="ok">บันทึก</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="placeDlg">
   <form method="dialog" class="dpad" id="placeForm">
@@ -317,7 +345,7 @@
 <script>
 (function(){
 "use strict";
-const KEY = "cnx-trip-2026-v3";
+const KEY = "cnx-trip-2026-v4";
 const uid = () => Math.random().toString(36).slice(2,9);
 const THB = n => "฿" + (Number(n)||0).toLocaleString("th-TH");
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -334,7 +362,8 @@ function defaults(){
   const P = (time,emoji,name,zone,cost,note) => ({id:uid(),time,emoji,name,zone,cost,note,done:false});
   const E = (emoji,name,cat,vendor,promo,planned,actual,pay,months) => ({id:uid(),emoji,name,cat,vendor,promo,planned,actual,pay,months});
   return {
-    v:1,
+    v:4,
+    trip:{ title:"ทริปเชียงใหม่ 🌸", start:"2026-07-26", end:"2026-07-29" },
     days:[
       { id:uid(), label:"วันที่ 1", dateLabel:"อาทิตย์ 26 ก.ค.", zone:"มุ่งหน้าเชียงดาว (ค้างบนดอย 1 คืน)", color:DAY_COLORS[0], places:[
         P("06:00","✈️","บิน DMK → เชียงใหม่ (FD3416)","เดินทาง",0,"ไทยแอร์เอเชีย ถึง 07:10 · ไม่มีโหลดกระเป๋าฟรี"),
@@ -393,7 +422,31 @@ function defaults(){
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || defaults(); }
 catch(e){ S = defaults(); }
+if (!S.trip) S = defaults();
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- trip helpers ---------- */
+function tripInfo(){
+  const s = new Date(S.trip.start + "T00:00:00");
+  const e = new Date(S.trip.end + "T00:00:00");
+  const n = Math.max(1, Math.round((e - s) / 86400000) + 1);
+  return {s, e, n};
+}
+const fmtD = (d, opt) => d.toLocaleDateString("th-TH", opt || {weekday:"short", day:"numeric", month:"short"});
+function dayDate(i){ const {s} = tripInfo(); const d = new Date(s); d.setDate(d.getDate() + i); return d; }
+function reconcileDays(interactive){
+  const {n} = tripInfo();
+  while (S.days.length < n) S.days.push({id:uid(), zone:"", places:[]});
+  if (S.days.length > n){
+    const extra = S.days.slice(n);
+    const cnt = extra.reduce((a,d)=>a+d.places.length,0);
+    if (cnt > 0 && interactive &&
+        !confirm("ช่วงวันสั้นลง ที่เที่ยวในวันท้ายๆ (" + cnt + " จุด) จะถูกลบด้วยนะ ยืนยันไหม?")) return false;
+    S.days = S.days.slice(0, n);
+  }
+  return true;
+}
+reconcileDays(false);
 
 /* ---------- tabs ---------- */
 document.querySelectorAll(".tabbar button").forEach(b=>{
@@ -406,12 +459,17 @@ document.querySelectorAll(".tabbar button").forEach(b=>{
 
 /* ---------- hero ---------- */
 function renderHero(){
-  const start = new Date(2026,6,26), end = new Date(2026,6,29,23,59);
+  const {s, e, n} = tripInfo();
+  document.getElementById("tripTitle").textContent = S.trip.title;
+  document.getElementById("tripSub").textContent =
+    fmtD(s) + " – " + fmtD(e, {weekday:"short", day:"numeric", month:"short", year:"numeric"}) +
+    " · " + (n === 1 ? "เที่ยววันเดียว" : n + " วัน " + (n-1) + " คืน");
   const now = new Date();
-  const d = Math.ceil((start - now)/86400000);
+  const end = new Date(e); end.setHours(23,59,59);
+  const d = Math.ceil((s - now)/86400000);
   let txt;
   if (now > end) txt = "จบทริปแล้ว 🧡";
-  else if (now >= start) txt = "กำลังเที่ยวอยู่! 🎉";
+  else if (now >= s) txt = "กำลังเที่ยวอยู่! 🎉";
   else txt = "อีก " + d + " วันได้เที่ยวแล้ว!";
   document.getElementById("countdown").textContent = txt;
   document.getElementById("placeCount").textContent = S.days.reduce((a,d)=>a+d.places.length,0);
@@ -441,14 +499,23 @@ function renderPlan(){
           <button class="icon-btn" title="แก้ไข" aria-label="แก้ไข ${esc(p.name)}" onclick="APP.editPlace('${d.id}','${p.id}')">✏️</button>
         </div>
       </div>`).join("");
+    const col = DAY_COLORS[di % DAY_COLORS.length];
+    const dayCost = d.places.reduce((a,p)=>a+(Number(p.cost)||0),0);
     return `<div class="card">
-      <div class="day-head" style="background:var(--${d.color}-soft)">
-        <div class="dot" style="background:var(--card)"><span aria-hidden="true">${["🧡","💚","🌸","💙"][di]||"⭐"}</span></div>
-        <div><div class="t1">${esc(d.label)} · ${esc(d.dateLabel)}</div><div class="t2">${esc(d.zone)}</div></div>
-        <span class="chip zone num" style="background:var(--card);color:var(--ink)">${d.places.length} จุด</span>
+      <div class="day-head" style="background:var(--${col}-soft)">
+        <div class="dot" style="background:var(--card)"><span aria-hidden="true">${["🧡","💚","🌸","💙"][di%4]}</span></div>
+        <div style="flex:1;min-width:0">
+          <div class="t1">วันที่ ${di+1} · ${fmtD(dayDate(di))}</div>
+          <div class="t2">${d.zone ? esc(d.zone) : "แตะ ✏️ เพื่อตั้งธีมของวัน"}</div>
+        </div>
+        <button class="icon-btn" title="ตั้งธีม/โซนของวัน" aria-label="ตั้งธีมของวันที่ ${di+1}" onclick="APP.editDayZone('${d.id}')">✏️</button>
+        <div class="day-chips">
+          <span class="chip num" style="background:var(--card);color:var(--ink)">📍 ${d.places.length} จุด</span>
+          ${dayCost>0 ? '<span class="chip num" style="background:var(--card);color:var(--ink)">💰 วันนี้ ~'+THB(dayCost)+'</span>' : ""}
+        </div>
       </div>
-      ${rows}
-      <div class="addrow"><button class="act" onclick="APP.addPlace('${d.id}')">＋ เพิ่มที่เที่ยว${esc(d.label)}</button></div>
+      ${rows || '<div class="place" style="border-top:0"><div class="body hint" style="margin:0">ยังไม่มีแพลนวันนี้ กดปุ่มด้านล่างเพิ่มได้เลย ✨</div></div>'}
+      <div class="addrow"><button class="act" onclick="APP.addPlace('${d.id}')">＋ เพิ่มที่เที่ยววันที่ ${di+1}</button></div>
     </div>`;
   }).join("");
 }
@@ -554,8 +621,9 @@ function renderSummary(){
 
   const doneCount = S.days.reduce((a,d)=>a+d.places.filter(p=>p.done).length,0);
   const total = S.days.reduce((a,d)=>a+d.places.length,0);
+  const ti = tripInfo();
   document.getElementById("facts").innerHTML = `
-    <div class="fact"><div class="vl">4 วัน 3 คืน</div><div class="lb">26–29 ก.ค. 2569</div></div>
+    <div class="fact"><div class="vl">${ti.n===1?"1 วัน":ti.n+" วัน "+(ti.n-1)+" คืน"}</div><div class="lb">${fmtD(ti.s,{day:"numeric",month:"short"})} – ${fmtD(ti.e,{day:"numeric",month:"short",year:"numeric"})}</div></div>
     <div class="fact"><div class="vl num">${total} จุด</div><div class="lb">ที่เที่ยวในแพลน</div></div>
     <div class="fact"><div class="vl num">${doneCount}/${total}</div><div class="lb">เที่ยวไปแล้ว</div></div>
     <div class="fact"><div class="vl num">${inst.length} รายการ</div><div class="lb">ผ่อนบัตร 0%</div></div>`;
@@ -572,7 +640,7 @@ let placeCtx = null; // {dayId, placeId|null}
 function openPlaceDlg(dayId, place){
   placeCtx = {dayId, placeId: place?place.id:null};
   pf("placeDlgTitle").textContent = place ? "แก้ไขที่เที่ยว" : "เพิ่มที่เที่ยว";
-  pf("pfDay").innerHTML = S.days.map(d=>`<option value="${d.id}" ${d.id===dayId?"selected":""}>${esc(d.label)} · ${esc(d.dateLabel)}</option>`).join("");
+  pf("pfDay").innerHTML = S.days.map((d,i)=>`<option value="${d.id}" ${d.id===dayId?"selected":""}>วันที่ ${i+1} · ${fmtD(dayDate(i))}</option>`).join("");
   pf("pfTime").value = place?place.time:"";
   pf("pfEmoji").value = place?place.emoji:"";
   pf("pfName").value = place?place.name:"";
@@ -689,15 +757,65 @@ document.getElementById("bakRestore").addEventListener("click",()=>{
   try{
     const data = JSON.parse(pf("bakText").value);
     if (!data || !Array.isArray(data.days) || !Array.isArray(data.expenses)) throw new Error("bad");
+    if (!data.trip) data.trip = {title:"ทริปของฉัน ✈️", start:"2026-07-26", end:"2026-07-29"};
     if (confirm("กู้คืนข้อมูลจากข้อความนี้? ข้อมูลปัจจุบันจะถูกแทนที่นะ")){
-      S = data; save(); render(); bakDlg.close();
+      S = data; reconcileDays(false); save(); render(); bakDlg.close();
     }
   }catch(e){ alert("ข้อความนี้ไม่ใช่ข้อมูลสำรองที่ถูกต้อง ลองวางใหม่อีกครั้งนะ"); }
 });
+/* ---------- trip dialog / reset / sample ---------- */
+const tripDlg = document.getElementById("tripDlg");
+let tripMode = "edit";
+const isoLocal = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+
+document.getElementById("editTripBtn").addEventListener("click",()=>{
+  tripMode = "edit";
+  document.getElementById("tripDlgTitle").textContent = "แก้ไขทริป";
+  pf("tfTitle").value = S.trip.title;
+  pf("tfStart").value = S.trip.start;
+  pf("tfEnd").value = S.trip.end;
+  tripDlg.showModal();
+});
+document.getElementById("tripForm").addEventListener("submit", ev=>{
+  if (ev.submitter && ev.submitter.value==="cancel") return;
+  const t = pf("tfTitle").value.trim();
+  let a = pf("tfStart").value, b = pf("tfEnd").value;
+  if (!a || !b) return;
+  if (b < a){ const tmp = a; a = b; b = tmp; }
+  if (tripMode === "new"){
+    S = { v:4, trip:{title:t, start:a, end:b}, days:[], expenses:[] };
+    reconcileDays(false); save(); render();
+    document.querySelector('.tabbar button[data-tab="tab-plan"]').click();
+    return;
+  }
+  const old = S.trip;
+  S.trip = {title:t, start:a, end:b};
+  if (!reconcileDays(true)){ S.trip = old; return; }
+  save(); render();
+});
 document.getElementById("resetBtn").addEventListener("click",()=>{
-  if (confirm("รีเซ็ตกลับเป็นแพลนเริ่มต้น? ข้อมูลที่แก้ไว้จะหายทั้งหมดนะ")){
+  if (!confirm("เริ่มทริปใหม่ทั้งหมด? แพลนและค่าใช้จ่ายปัจจุบันจะถูกล้างเป็นค่าว่าง\n(แนะนำกดสำรองข้อมูลเก็บไว้ก่อนนะ)")) return;
+  tripMode = "new";
+  document.getElementById("tripDlgTitle").textContent = "สร้างทริปใหม่ ✨";
+  pf("tfTitle").value = "";
+  const today = new Date(); const t2 = new Date(today); t2.setDate(t2.getDate()+2);
+  pf("tfStart").value = isoLocal(today);
+  pf("tfEnd").value = isoLocal(t2);
+  tripDlg.showModal();
+});
+document.getElementById("sampleBtn").addEventListener("click",()=>{
+  if (confirm("โหลดแพลนตัวอย่างทริปเชียงใหม่? ข้อมูลปัจจุบันจะถูกแทนที่")){
     S = defaults(); save(); render();
   }
+});
+
+/* ---------- day zone dialog ---------- */
+const dayDlg = document.getElementById("dayDlg");
+let dayCtx = null;
+document.getElementById("dayForm").addEventListener("submit", ev=>{
+  if (ev.submitter && ev.submitter.value==="cancel") return;
+  const d = S.days.find(x=>x.id===dayCtx);
+  if (d){ d.zone = pf("dfZone").value.trim(); save(); render(); }
 });
 
 /* ---------- global handlers ---------- */
@@ -719,6 +837,11 @@ window.APP = {
     openPlaceDlg(dayId, p);
   },
   addPlace(dayId){ openPlaceDlg(dayId, null); },
+  editDayZone(dayId){
+    dayCtx = dayId;
+    pf("dfZone").value = (S.days.find(d=>d.id===dayId)||{}).zone || "";
+    dayDlg.showModal();
+  },
   editExp(id){ openExpDlg(S.expenses.find(e=>e.id===id)); },
   delExp(id){
     const e = S.expenses.find(x=>x.id===id);
