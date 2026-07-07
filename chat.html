@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Moni 🌸 — จดพอร์ตด้วยแชท</title>
+<style>
+  :root{
+    --page:#fdf1f6; --surface:#ffffff; --surface2:#ffe8f0; --surface3:#fff7fa;
+    --ink:#3b1f31; --ink2:#85566e; --muted:#b08ea0;
+    --border:rgba(224,68,124,.15); --grid:#f3dce6; --baseline:#e6c3d2;
+    --accent:#e0447c; --accent-deep:#c22e66;
+    --us:#2a78d6; --fund:#1baf7a; --tax:#eda100; --cash:#008300;
+    --gold:#4a3aa7; --etf:#e34948; --other:#e87ba4;
+    --up:#006300; --down:#d03b3b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--page);height:100%}
+  body{color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+       display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+  .top{background:linear-gradient(120deg,#ff9ec3,#e0447c 70%,#c22e66);color:#fff;
+       padding:calc(env(safe-area-inset-top, 0px) + 12px) 18px 12px;
+       display:flex;align-items:center;justify-content:space-between;flex:none}
+  .top .name{font-size:17px;font-weight:800;letter-spacing:.2px}
+  .top .name small{font-weight:500;opacity:.85;font-size:11px;display:block;margin-top:1px}
+  .top .mini{text-align:right}
+  .top .mini .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+  .top .mini .d{font-size:11px;opacity:.9;font-variant-numeric:tabular-nums}
+
+  main{flex:1;overflow:hidden;position:relative}
+  .view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        padding:14px 14px 20px;display:none}
+  .view.on{display:block}
+  .inner{max-width:480px;margin:0 auto}
+
+  .tabs{flex:none;display:flex;background:var(--surface);border-top:1px solid var(--border);
+        padding-bottom:env(safe-area-inset-bottom, 0px)}
+  .tabs button{flex:1;background:none;border:none;padding:10px 0 8px;cursor:pointer;
+        font-size:11.5px;color:var(--muted);font-weight:600;font-family:inherit}
+  .tabs button .ic{display:block;font-size:20px;margin-bottom:2px;filter:grayscale(1);opacity:.5}
+  .tabs button.on{color:var(--accent-deep)}
+  .tabs button.on .ic{filter:none;opacity:1}
+
+  #msgs{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+  .bub{max-width:82%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;
+       white-space:pre-wrap;word-break:break-word;animation:pop .18s ease-out}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .bub{animation:none} }
+  .bub.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+  .bub.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--border);
+           border-bottom-left-radius:6px;box-shadow:0 1px 4px rgba(224,68,124,.08)}
+  .bub.bot b{color:var(--accent-deep)}
+  .bub .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip-num{background:var(--surface2);border:1px solid var(--border);color:var(--accent-deep);
+            padding:5px 12px;border-radius:14px;font-size:13.5px;font-weight:700;cursor:pointer;
+            font-variant-numeric:tabular-nums}
+  .chip-num:active{background:var(--accent);color:#fff}
+  .quick{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+  .quick button{background:var(--surface);border:1px solid var(--border);color:var(--ink2);
+        padding:6px 13px;border-radius:16px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .quick button:active{background:var(--surface2)}
+
+  .inputrow{position:sticky;bottom:0;display:flex;gap:8px;padding-top:10px;
+            background:linear-gradient(transparent,var(--page) 30%)}
+  .inputrow .att{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--border);
+        background:var(--surface);font-size:19px;cursor:pointer}
+  .inputrow textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:22px;
+        padding:11px 16px;font-size:15px;font-family:inherit;background:var(--surface);
+        color:var(--ink);height:44px;line-height:1.4}
+  .inputrow textarea:focus{outline:none;border-color:var(--accent)}
+  .inputrow .send{flex:none;width:44px;height:44px;border-radius:50%;border:none;
+        background:var(--accent);color:#fff;font-size:17px;cursor:pointer;font-weight:700}
+  .inputrow .send:active{background:var(--accent-deep)}
+
+  .hero{background:linear-gradient(135deg,#fff 0%,#fff5f9 100%);border:1px solid var(--border);
+        border-radius:22px;padding:20px;margin-bottom:12px;text-align:center;
+        box-shadow:0 2px 12px rgba(224,68,124,.07)}
+  .hero .lbl{font-size:12px;color:var(--ink2);margin-bottom:4px}
+  .hero .num{font-size:40px;font-weight:800;color:var(--accent-deep);
+             font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .hero .pair{display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pill{font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:16px;
+        font-variant-numeric:tabular-nums}
+  .pill.up{background:#e3f4e3;color:var(--up)} .pill.down{background:#fde7e7;color:var(--down)}
+  .pill.flat{background:var(--surface2);color:var(--muted)}
+  .pill small{font-weight:500;opacity:.75}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+        padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(224,68,124,.05)}
+  .card h2{font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:.5px;
+        text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .chartbox{position:relative}
+  .tt{position:absolute;pointer-events:none;background:var(--ink);color:#fff;
+      border-radius:9px;padding:7px 11px;font-size:12px;display:none;z-index:5;white-space:nowrap}
+  .tt .t-val{font-size:14px;font-weight:700}
+  .tt .t-lbl{opacity:.75;margin-top:1px}
+
+  .legend{list-style:none;margin-top:10px}
+  .legend li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
+  .dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .legend .nm{color:var(--ink2);flex:1}
+  .legend .v{font-variant-numeric:tabular-nums;font-weight:700}
+  .legend .pc{color:var(--muted);width:50px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px}
+
+  .hrow{display:grid;grid-template-columns:minmax(110px,190px) 1fr 84px 46px;gap:8px;
+        align-items:center;padding:5px 0}
+  .hrow .nm{font-size:12.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;
+        text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+  .hrow .track{background:var(--surface3);border:1px solid var(--grid);border-radius:4px;height:13px}
+  .hrow .fill{height:100%;border-radius:0 4px 4px 0}
+  .hrow .v{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .hrow .pc{font-size:11.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:16px 0}
+
+  .fx{position:fixed;font-size:22px;pointer-events:none;z-index:99;animation:rise 1.6s ease-out forwards}
+  @keyframes rise{to{transform:translateY(-130px) rotate(30deg);opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .fx{display:none} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="name">Moni 🌸<small>จดพอร์ตด้วยแชท</small></div>
+  <div class="mini"><div class="v" id="top-total">—</div><div class="d" id="top-diff"></div></div>
+</div>
+
+<main>
+  <section class="view on" id="view-chat">
+    <div class="inner">
+      <div id="msgs"></div>
+      <div class="quick">
+        <button data-q="สรุป">📊 สรุป</button>
+        <button data-q="ตัวอย่าง">✍️ วิธีพิมพ์</button>
+        <button id="q-cam">📷 อ่านจากรูป</button>
+      </div>
+      <div class="inputrow">
+        <button class="att" id="att" title="แนบรูป">📷</button>
+        <textarea id="inp" rows="1" placeholder="เช่น dime 135.17 fx 33.28"></textarea>
+        <button class="send" id="send" title="ส่ง">➤</button>
+      </div>
+      <input type="file" id="file" accept="image/*" style="display:none">
+    </div>
+  </section>
+
+  <section class="view" id="view-dash">
+    <div class="inner">
+      <div class="hero">
+        <div class="lbl">สินทรัพย์รวม 💖</div>
+        <div class="num" id="d-total">—</div>
+        <div class="pair">
+          <span class="pill flat" id="d-day">วันนี้ —</span>
+          <span class="pill flat" id="d-since">ตั้งแต่เริ่ม —</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🌷 มูลค่ารวมตามเวลา</h2>
+        <div class="chartbox">
+          <svg id="line" viewBox="0 0 460 210" style="width:100%;height:auto" role="img" aria-label="มูลค่ารวมตามเวลา"></svg>
+          <div class="tt" id="line-tt"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🌱 อัตราการเปลี่ยนแปลงรายวัน (%)</h2>
+        <svg id="growth" viewBox="0 0 460 150" style="width:100%;height:auto" role="img" aria-label="เปอร์เซ็นต์เปลี่ยนแปลงรายวัน"></svg>
+        <div class="empty" id="growth-empty" style="display:none">ต้องมีข้อมูลอย่างน้อย 2 วัน</div>
+      </div>
+
+      <div class="card">
+        <h2>🍩 สัดส่วนพอร์ต</h2>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          <svg id="donut" width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="สัดส่วนพอร์ต"></svg>
+          <ul class="legend" id="legend" style="flex:1;min-width:180px"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>💗 รายตัว <span id="h-asof" style="text-transform:none;font-weight:500;color:var(--muted)"></span></h2>
+        <div id="holdings"></div>
+        <div class="empty" id="hold-empty" style="display:none">ยังไม่มีข้อมูลรายตัว</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="tabs">
+  <button class="on" data-v="chat"><span class="ic">💬</span>แชท</button>
+  <button data-v="dash"><span class="ic">📊</span>สรุปพอร์ต</button>
+</div>
+
+<script>
+"use strict";
+/* ── shared storage (คีย์เดียวกับแอปหลัก index.html — ข้อมูลชุดเดียวกัน) ── */
+const KEY3="emil_portfolio_v2", KEY2="emil_portfolio_holdings_v1";
+const SLOT={us:"var(--us)",fund:"var(--fund)",tax:"var(--tax)",cash:"var(--cash)",
+            gold:"var(--gold)",etf:"var(--etf)",other:"var(--other)"};
+const GROUPS=[["us","หุ้น US"],["fund","กองทุนรวม"],["tax","ลดหย่อนภาษี"],["cash","เงินสด"],
+              ["gold","ทองคำ"],["etf","ETF"],["other","อื่นๆ"]];
+const GNAME=Object.fromEntries(GROUPS);
+const DEF_ACCOUNTS=[
+  {id:"dime",  name:"Dime! หุ้น US",          grp:"us",   cur:"USD", off:false},
+  {id:"wxgen", name:"WealthX ทั่วไป",          grp:"fund", cur:"THB", off:false},
+  {id:"wxtax", name:"WealthX ลดหย่อนภาษี",     grp:"tax",  cur:"THB", off:false},
+  {id:"bank",  name:"เงินสด • ธนาคาร",         grp:"cash", cur:"THB", off:false},
+  {id:"dsave", name:"เงินสด • Dime Save",      grp:"cash", cur:"THB", off:false},
+  {id:"fcd",   name:"เงินสด • Dime FCD (ดอกเบี้ย 4.5%)", grp:"cash", cur:"USD", off:false},
+];
+const ALIASES={
+  dime:["dime","ไดม์","หุ้น"], wxgen:["wxgen","กองทุนทั่วไป","ทั่วไป","กองทุน"],
+  wxtax:["wxtax","ลดหย่อน","ภาษี"], bank:["bank","ธนาคาร","แบงค์"],
+  dsave:["dsave","เซฟ"], fcd:["fcd"],
+};
+
+function jload(k){ try{const s=localStorage.getItem(k); if(s) return JSON.parse(s);}catch(e){} return null; }
+function jsave(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } }
+let db=jload(KEY3);
+if(!db){ db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),entries:[]}; jsave(KEY3,db); }
+let holds=jload(KEY2)||{snaps:[]};
+if(holds && !holds.snaps) holds={snaps:[{asof:holds.asof||"",items:holds.items||[]}]};
+
+const fmt=(n,d=2)=>Number(n).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sorted=()=>db.entries.slice().sort((a,b)=>a.date<b.date?-1:1);
+const accById=id=>db.accounts.find(a=>a.id===id);
+function thbVal(e,id){ const v=e.vals[id]; if(v==null)return 0;
+  const a=accById(id); return (a&&a.cur==="USD")?v*e.fx:v; }
+const totalOf=e=>Object.keys(e.vals).reduce((s,id)=>s+thbVal(e,id),0);
+const grpColor=k=>SLOT[k]||SLOT.other;
+const sign=n=>n>=0?"+":"−";
+const cls=n=>n>0.005?"up":n<-0.005?"down":"flat";
+const today=()=>new Date().toISOString().slice(0,10);
+
+/* ── tabs ── */
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    document.getElementById("view-"+b.dataset.v).classList.add("on");
+    if(b.dataset.v==="dash") renderDash();
+  });
+});
+
+/* ── chat core ── */
+const msgs=document.getElementById("msgs");
+function bubble(text,who){
+  const d=document.createElement("div"); d.className="bub "+who; d.textContent=text;
+  msgs.appendChild(d); scrollBottom(); return d;
+}
+function botHTMLBubble(){ const d=document.createElement("div"); d.className="bub bot";
+  msgs.appendChild(d); return d; }
+function scrollBottom(){ const v=document.getElementById("view-chat"); v.scrollTop=v.scrollHeight; }
+
+function greet(){
+  const es=sorted();
+  if(es.length){
+    const last=es[es.length-1];
+    bubble("สวัสดีค่า 🌸 พอร์ตล่าสุด ("+last.date+") รวม "+fmt(totalOf(last),0)+" ฿\nพิมพ์ค่าใหม่มาได้เลย หรือกด 📊 สรุป",
+      "bot");
+  }else{
+    bubble("สวัสดีค่า 🌸 ยังไม่มีข้อมูลเลย เริ่มจดกันเลยมั้ย?\n\nพิมพ์แบบนี้ได้เลย:\ndime 135.17 fx 33.28\nกองทุน 13706.99\nลดหย่อน 3060.15\n\nหรือกด ✍️ วิธีพิมพ์ ดูตัวอย่างเพิ่ม","bot");
+  }
+}
+
+/* ── parser ── */
+function parseMsg(text){
+  const vals={}; let fx=null;
+  const clean=text.replace(/,/g,"");
+  const fxm=clean.match(/(?:fx|เรท)\s*=?\s*([\d.]+)/i);
+  if(fxm) fx=Number(fxm[1]);
+  clean.split(/\n+/).forEach(line=>{
+    Object.keys(ALIASES).forEach(id=>{
+      ALIASES[id].forEach(al=>{
+        const re=new RegExp("(?:^|\\s)"+al+"\\s+([\\d.]+)","i");
+        const m=line.match(re);
+        if(m && vals[id]==null) vals[id]=Number(m[1]);
+      });
+    });
+    db.accounts.forEach(a=>{
+      if(vals[a.id]!=null) return;
+      if(ALIASES[a.id]) return;
+      const nm=a.name.replace(/[()•]/g," ").trim().split(/\s+/)[0];
+      if(nm.length<2) return;
+      const re=new RegExp("(?:^|\\s)"+nm.replace(/[.*+?^${}|[\]\\]/g,"\\$&")+"\\s+([\\d.]+)","i");
+      const m=line.match(re);
+      if(m) vals[a.id]=Number(m[1]);
+    });
+  });
+  return {vals,fx,count:Object.keys(vals).length};
+}
+
+function saveFromChat(p){
+  const es=sorted(), last=es[es.length-1];
+  const d=today();
+  let entry=db.entries.find(x=>x.date===d);
+  const prevMax=es.length?Math.max(...es.map(totalOf)):0;
+  if(!entry){
+    entry={date:d, fx:p.fx||(last?last.fx:33), vals:last?{...last.vals}:{}};
+    db.entries.push(entry);
+  }else if(p.fx){ entry.fx=p.fx; }
+  Object.assign(entry.vals,p.vals);
+  const ok=jsave(KEY3,db);
+  const tot=totalOf(entry);
+  const prev=sorted().filter(e=>e.date<d).pop();
+  let msg="จดให้แล้วค่า ✅ ("+d+")\n";
+  Object.keys(p.vals).forEach(id=>{
+    const a=accById(id);
+    msg+="• "+(a?a.name:id)+" = "+fmt(p.vals[id])+(a&&a.cur==="USD"?" USD":" ฿")+"\n";
+  });
+  if(p.fx) msg+="• FX = "+p.fx+"\n";
+  msg+="\nรวมทั้งพอร์ต "+fmt(tot,0)+" ฿";
+  if(prev){
+    const df=tot-totalOf(prev), pc=df/totalOf(prev)*100;
+    msg+="  ("+sign(df)+fmt(Math.abs(df),0)+" / "+sign(df)+Math.abs(pc).toFixed(2)+"%)";
+  }
+  if(!ok) msg+="\n⚠️ เบราว์เซอร์นี้บันทึกถาวรไม่ได้ ข้อมูลจะหายเมื่อปิด";
+  bubble(msg,"bot");
+  updateTop();
+  if(tot>prevMax && prevMax>0) celebrate();
+}
+
+function summaryBubble(){
+  const es=sorted();
+  if(!es.length){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ค่าแรกมาก่อนนะ","bot"); return; }
+  const last=es[es.length-1], first=es[0];
+  const tot=totalOf(last);
+  const byG={};
+  Object.keys(last.vals).forEach(id=>{
+    const a=accById(id); const k=a?a.grp:"other";
+    byG[k]=(byG[k]||0)+thbVal(last,id);
+  });
+  let m="📊 พอร์ตล่าสุด ("+last.date+")\nรวม "+fmt(tot,0)+" ฿\n\n";
+  GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/tot*100).toFixed(1)+"%)\n"; });
+  if(es.length>1){
+    const d0=tot-totalOf(first), p0=d0/totalOf(first)*100;
+    m+="\nตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ฿ ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
+  }
+  bubble(m,"bot");
+}
+
+function helpBubble(){
+  bubble("พิมพ์ได้หลายแบบเลยค่า ✍️\n\n"+
+    "dime 135.17 fx 33.28\nกองทุน 13706.99\nลดหย่อน 3060.15\nธนาคาร 2000\nfcd 7.34\n\n"+
+    "• พิมพ์หลายบรรทัดในข้อความเดียวได้\n• ตัวที่ไม่พิมพ์ ระบบพกยอดเดิมมาให้อัตโนมัติ\n"+
+    "• พิมพ์ \"สรุป\" ดูยอดรวม\n• กด 📷 แนบรูปพอร์ต เดี๋ยวอ่านตัวเลขให้แตะเลือก","bot");
+}
+
+function handleSend(){
+  const inp=document.getElementById("inp");
+  const text=inp.value.trim(); if(!text) return;
+  bubble(text,"me"); inp.value="";
+  route(text);
+}
+function route(text){
+  if(/^สรุป/.test(text)){ summaryBubble(); return; }
+  if(/^(ตัวอย่าง|ช่วย|help|วิธี)/i.test(text)){ helpBubble(); return; }
+  const p=parseMsg(text);
+  if(p.count===0 && !p.fx){
+    bubble("อ่านไม่ออกค่า 🥺 ลองพิมพ์แบบนี้นะ:\ndime 135.17 fx 33.28\nหรือกด ✍️ วิธีพิมพ์","bot");
+    return;
+  }
+  saveFromChat(p);
+}
+document.getElementById("send").addEventListener("click",handleSend);
+document.getElementById("inp").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); handleSend(); }
+});
+document.querySelectorAll(".quick button[data-q]").forEach(b=>{
+  b.addEventListener("click",()=>{ bubble(b.dataset.q,"me"); route(b.dataset.q); });
+});
+
+/* ── OCR (อ่านตัวเลขจากรูป — ทำในเครื่อง ไม่ส่งรูปขึ้นเซิร์ฟเวอร์) ── */
+const fileInput=document.getElementById("file");
+document.getElementById("att").addEventListener("click",()=>fileInput.click());
+document.getElementById("q-cam").addEventListener("click",()=>fileInput.click());
+let ocrLib=null;
+fileInput.addEventListener("change",async ev=>{
+  const f=ev.target.files[0]; fileInput.value=""; if(!f) return;
+  bubble("📷 (แนบรูป: "+f.name+")","me");
+  const st=bubble("กำลังอ่านรูปอยู่ค่า… ⏳ (ครั้งแรกอาจใช้เวลาสักหน่อย)","bot");
+  try{
+    if(!ocrLib){
+      await new Promise((res,rej)=>{
+        const s=document.createElement("script");
+        s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        s.onload=res; s.onerror=()=>rej(new Error("load"));
+        document.head.appendChild(s);
+      });
+      ocrLib=Tesseract;
+    }
+    const {data}=await ocrLib.recognize(f,"eng");
+    st.remove();
+    const text=data.text||"";
+    const fxm=text.replace(/,/g,"").match(/1\s*USD\s*=\s*([\d.]+)/i);
+    const nums=[...new Set((text.match(/\d[\d,]*\.\d\d/g)||[]).map(x=>x.replace(/,/g,"")))]
+      .map(Number).filter(n=>n>0.1&&n<10000000).slice(0,14);
+    if(!nums.length){ bubble("อ่านไม่เจอตัวเลขในรูปเลยค่า 🥺 ลองพิมพ์เองนะ","bot"); return; }
+    const d=botHTMLBubble();
+    const t=document.createElement("div");
+    t.textContent="เจอตัวเลขพวกนี้ในรูปค่า 👇 แตะตัวเลขเพื่อใส่ในช่องพิมพ์ แล้วเติมชื่อบัญชีข้างหน้า (เช่น dime …)"+
+      (fxm?("\n\nFX ที่เจอ: 1 USD = "+fxm[1]):"");
+    d.appendChild(t);
+    const chips=document.createElement("div"); chips.className="chips";
+    if(fxm){
+      const c=document.createElement("button"); c.className="chip-num";
+      c.textContent="fx "+fxm[1];
+      c.addEventListener("click",()=>{ addToInput("fx "+fxm[1]); });
+      chips.appendChild(c);
+    }
+    nums.forEach(n=>{
+      const c=document.createElement("button"); c.className="chip-num"; c.textContent=fmt(n);
+      c.addEventListener("click",()=>addToInput(String(n)));
+      chips.appendChild(c);
+    });
+    d.appendChild(chips); scrollBottom();
+  }catch(e){
+    st.remove();
+    bubble("อ่านรูปไม่สำเร็จค่า 🥺 (โหลดตัวอ่านไม่ได้ หรือรูปไม่ชัด) พิมพ์ตัวเลขเองได้เลยนะ","bot");
+  }
+});
+function addToInput(s){
+  const inp=document.getElementById("inp");
+  inp.value=(inp.value?inp.value+(inp.value.endsWith(" ")?"":" "):"")+s+" ";
+  inp.focus();
+}
+
+/* ── celebrate ── */
+function celebrate(){
+  bubble("นิวไฮ! พอร์ตทำจุดสูงสุดใหม่ 🎉💖","bot");
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  ["🎉","💖","✨","🌸","💰"].forEach((em,i)=>{
+    const s=document.createElement("span"); s.className="fx"; s.textContent=em;
+    s.style.left=(15+i*17)+"%"; s.style.bottom="90px";
+    s.style.animationDelay=(i*0.08)+"s";
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),1900);
+  });
+}
+
+/* ── top mini + dashboard ── */
+function updateTop(){
+  const es=sorted();
+  const tEl=document.getElementById("top-total"), dEl=document.getElementById("top-diff");
+  if(!es.length){ tEl.textContent="—"; dEl.textContent=""; return; }
+  const last=es[es.length-1], prev=es[es.length-2];
+  tEl.textContent=fmt(totalOf(last),0)+" ฿";
+  if(prev){
+    const df=totalOf(last)-totalOf(prev);
+    dEl.textContent=sign(df)+fmt(Math.abs(df),0)+" จากครั้งก่อน";
+  }else dEl.textContent=last.date;
+}
+
+function countUp(el,target){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){
+    el.textContent=fmt(target,0)+" ฿"; return;
+  }
+  const t0=performance.now(), dur=700, from=target*0.85;
+  function step(t){
+    const k=Math.min(1,(t-t0)/dur), v=from+(target-from)*(1-Math.pow(1-k,3));
+    el.textContent=fmt(v,0)+" ฿";
+    if(k<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function renderDash(){
+  const es=sorted();
+  const totalEl=document.getElementById("d-total");
+  if(!es.length){ totalEl.textContent="—"; return; }
+  const last=es[es.length-1], prev=es[es.length-2], first=es[0];
+  const tot=totalOf(last);
+  countUp(totalEl,tot);
+
+  const day=document.getElementById("d-day"), since=document.getElementById("d-since");
+  if(prev){
+    const df=tot-totalOf(prev), pc=df/totalOf(prev)*100;
+    day.className="pill "+cls(df);
+    day.textContent="วันนี้ "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(pc).toFixed(2)+"%)";
+  }else{ day.className="pill flat"; day.textContent="วันนี้ —"; }
+  if(es.length>1){
+    const d0=tot-totalOf(first), p0=d0/totalOf(first)*100;
+    since.className="pill "+cls(d0);
+    since.textContent="ตั้งแต่เริ่ม "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
+  }else{ since.className="pill flat"; since.textContent="ตั้งแต่เริ่ม —"; }
+
+  drawLine(es);
+  drawGrowth(es);
+  drawDonut(last);
+  drawHoldings(last);
+}
+
+const NS="http://www.w3.org/2000/svg";
+const el=(n,at)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);return e;};
+
+function drawLine(es){
+  const svg=document.getElementById("line"), tt=document.getElementById("line-tt");
+  svg.textContent="";
+  const W=460,H=210,L=58,R=14,T=12,B=26;
+  const ts=es.map(totalOf);
+  let lo=Math.min(...ts),hi=Math.max(...ts);
+  if(lo===hi){lo-=100;hi+=100;}
+  const pad=(hi-lo)*.15; lo-=pad; hi+=pad;
+  const step=Math.pow(10,Math.floor(Math.log10(hi-lo)))/2;
+  lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
+  const X=i=>es.length===1?(L+(W-L-R)/2):L+(W-L-R)*i/(es.length-1);
+  const Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  for(let i=0;i<=3;i++){
+    const v=lo+(hi-lo)*i/3, y=Y(v);
+    svg.appendChild(el("line",{x1:L,x2:W-R,y1:y,y2:y,stroke:"var(--grid)","stroke-width":1}));
+    const tx=el("text",{x:L-7,y:y+4,"text-anchor":"end","font-size":10,fill:"var(--muted)"});
+    tx.textContent=Math.round(v).toLocaleString("th-TH"); svg.appendChild(tx);
+  }
+  svg.appendChild(el("line",{x1:L,x2:W-R,y1:H-B,y2:H-B,stroke:"var(--baseline)","stroke-width":1}));
+  const idxs=es.length<=3?es.map((_,i)=>i):[0,Math.floor((es.length-1)/2),es.length-1];
+  [...new Set(idxs)].forEach(i=>{
+    const tx=el("text",{x:X(i),y:H-8,"text-anchor":"middle","font-size":10,fill:"var(--muted)"});
+    tx.textContent=es[i].date.slice(5); svg.appendChild(tx);
+  });
+  const pts=es.map((e,i)=>[X(i),Y(totalOf(e))]);
+  if(es.length>1){
+    svg.appendChild(el("path",{d:"M"+pts.map(p=>p.join(" ")).join(" L ")+
+      ` L ${pts[pts.length-1][0]} ${H-B} L ${pts[0][0]} ${H-B} Z`,fill:"var(--accent)",opacity:.09}));
+    svg.appendChild(el("path",{d:"M"+pts.map(p=>p.join(" ")).join(" L "),fill:"none",
+      stroke:"var(--accent)","stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  }
+  const cross=el("line",{y1:T,y2:H-B,stroke:"var(--baseline)","stroke-width":1,visibility:"hidden"});
+  svg.appendChild(cross);
+  pts.forEach(p=>{
+    svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:6,fill:"var(--surface)"}));
+    svg.appendChild(el("circle",{cx:p[0],cy:p[1],r:4,fill:"var(--accent)"}));
+  });
+  const lastP=pts[pts.length-1];
+  const lb=el("text",{x:Math.min(lastP[0],W-R-4),y:lastP[1]-11,"text-anchor":"end",
+    "font-size":11,"font-weight":700,fill:"var(--ink2)"});
+  lb.textContent=fmt(totalOf(es[es.length-1]),0); svg.appendChild(lb);
+  svg.style.touchAction="none";
+  svg.addEventListener("pointermove",ev=>{
+    const r=svg.getBoundingClientRect(), mx=(ev.clientX-r.left)*(W/r.width);
+    let best=0,bd=1e9;
+    pts.forEach((p,i)=>{const d=Math.abs(p[0]-mx); if(d<bd){bd=d;best=i;}});
+    cross.setAttribute("x1",pts[best][0]); cross.setAttribute("x2",pts[best][0]);
+    cross.setAttribute("visibility","visible");
+    const host=svg.parentElement.getBoundingClientRect();
+    tt.style.display="block";
+    tt.style.left=Math.min(pts[best][0]*(r.width/W),host.width-130)+"px";
+    tt.style.top=Math.max(0,pts[best][1]*(r.height/H)-46)+"px";
+    tt.textContent="";
+    const v=document.createElement("div"); v.className="t-val"; v.textContent=fmt(ts[best],0)+" ฿";
+    const l=document.createElement("div"); l.className="t-lbl"; l.textContent=es[best].date;
+    tt.append(v,l);
+  });
+  svg.addEventListener("pointerleave",()=>{tt.style.display="none";cross.setAttribute("visibility","hidden");});
+}
+
+function drawGrowth(es){
+  const svg=document.getElementById("growth"), empty=document.getElementById("growth-empty");
+  svg.textContent="";
+  if(es.length<2){ empty.style.display="block"; svg.style.display="none"; return; }
+  empty.style.display="none"; svg.style.display="";
+  const W=460,H=150,L=44,R=10,T=12,B=24;
+  const pcs=[];
+  for(let i=1;i<es.length;i++){
+    const a=totalOf(es[i-1]), b=totalOf(es[i]);
+    pcs.push({date:es[i].date, pc:a?(b-a)/a*100:0});
+  }
+  let mx=Math.max(.3,...pcs.map(p=>Math.abs(p.pc)));
+  const Y=v=>T+(H-T-B)*(1-(v+mx)/(2*mx));
+  const zero=Y(0);
+  svg.appendChild(el("line",{x1:L,x2:W-R,y1:zero,y2:zero,stroke:"var(--baseline)","stroke-width":1}));
+  const n=pcs.length, slot=(W-L-R)/n, bw=Math.min(24,slot*.55);
+  pcs.forEach((p,i)=>{
+    const x=L+slot*i+(slot-bw)/2, y=Y(Math.max(0,p.pc)), h=Math.abs(Y(p.pc)-zero);
+    const up=p.pc>=0;
+    const r=Math.min(4,h);
+    const d= up
+      ? `M${x} ${zero} L${x} ${y+r} Q${x} ${y} ${x+r} ${y} L${x+bw-r} ${y} Q${x+bw} ${y} ${x+bw} ${y+r} L${x+bw} ${zero} Z`
+      : `M${x} ${zero} L${x} ${zero+h-r} Q${x} ${zero+h} ${x+r} ${zero+h} L${x+bw-r} ${zero+h} Q${x+bw} ${zero+h} ${x+bw} ${zero+h-r} L${x+bw} ${zero} Z`;
+    svg.appendChild(el("path",{d,fill:up?"#0ca30c":"#d03b3b"}));
+    const tx=el("text",{x:x+bw/2,y:up?y-5:zero+h+11,"text-anchor":"middle","font-size":9.5,
+      "font-weight":700,fill:up?"var(--up)":"var(--down)"});
+    tx.textContent=(up?"+":"−")+Math.abs(p.pc).toFixed(2)+"%";
+    svg.appendChild(tx);
+    const dx=el("text",{x:x+bw/2,y:H-8,"text-anchor":"middle","font-size":9,fill:"var(--muted)"});
+    dx.textContent=p.date.slice(5); svg.appendChild(dx);
+  });
+}
+
+function polar(cx,cy,r,a){return [cx+r*Math.cos(a-Math.PI/2),cy+r*Math.sin(a-Math.PI/2)];}
+function arcPath(cx,cy,r0,r1,a0,a1){
+  const [x0,y0]=polar(cx,cy,r1,a0),[x1,y1]=polar(cx,cy,r1,a1),
+        [x2,y2]=polar(cx,cy,r0,a1),[x3,y3]=polar(cx,cy,r0,a0),
+        big=(a1-a0)>Math.PI?1:0;
+  return `M${x0} ${y0} A${r1} ${r1} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${big} 0 ${x3} ${y3} Z`;
+}
+function drawDonut(last){
+  const svg=document.getElementById("donut"), lg=document.getElementById("legend");
+  svg.textContent=""; lg.textContent="";
+  const byG={};
+  Object.keys(last.vals).forEach(id=>{
+    const a=accById(id), k=a?a.grp:"other";
+    byG[k]=(byG[k]||0)+thbVal(last,id);
+  });
+  const t=Object.values(byG).reduce((s,v)=>s+v,0);
+  const parts=GROUPS.filter(([k])=>byG[k]>0).map(([k,n])=>({k,n,v:byG[k]}));
+  const cx=70,cy=70,r0=42,r1=66,pad=2/54;
+  let a=0;
+  parts.forEach(p=>{
+    const a1=a+p.v/t*2*Math.PI;
+    svg.appendChild(el("path",{d:arcPath(cx,cy,r0,r1,a+pad/2,Math.max(a+pad,a1-pad/2)),
+      fill:grpColor(p.k)}));
+    a=a1;
+  });
+  parts.forEach(p=>{
+    const li=document.createElement("li");
+    const dot=document.createElement("span"); dot.className="dot"; dot.style.background=grpColor(p.k);
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=p.n;
+    const v=document.createElement("span"); v.className="v"; v.textContent=fmt(p.v,0);
+    const pc=document.createElement("span"); pc.className="pc"; pc.textContent=(p.v/t*100).toFixed(1)+"%";
+    li.append(dot,nm,v,pc); lg.appendChild(li);
+  });
+}
+
+function drawHoldings(last){
+  const box=document.getElementById("holdings"), empty=document.getElementById("hold-empty");
+  box.textContent="";
+  const snaps=holds.snaps||[];
+  const snap=snaps.length?snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[snaps.length-1]:null;
+  document.getElementById("h-asof").textContent=snap?"("+snap.asof+")":"";
+  const rows=snap?snap.items.map(h=>({name:h.name,grp:h.grp==="dime"?"us":h.grp==="gen"?"fund":h.grp,
+    thb:h.cur==="USD"?h.val*last.fx:h.val})):[];
+  const cash=Object.keys(last.vals).reduce((s,id)=>{
+    const a=accById(id); return s+((a&&a.grp==="cash")?thbVal(last,id):0);},0);
+  if(cash>0) rows.push({name:"เงินสด / Cash",grp:"cash",thb:cash});
+  if(!rows.length){ empty.style.display="block"; return; }
+  empty.style.display="none";
+  rows.sort((a,b)=>b.thb-a.thb);
+  const t=rows.reduce((s,r)=>s+r.thb,0), mx=rows[0].thb;
+  rows.forEach(r=>{
+    const row=document.createElement("div"); row.className="hrow";
+    const nm=document.createElement("div"); nm.className="nm";
+    const dot=document.createElement("span"); dot.className="dot"; dot.style.background=grpColor(r.grp);
+    nm.appendChild(dot); nm.appendChild(document.createTextNode(r.name)); nm.title=r.name;
+    const track=document.createElement("div"); track.className="track";
+    const fill=document.createElement("div"); fill.className="fill";
+    fill.style.width=Math.max(2,r.thb/mx*100)+"%"; fill.style.background=grpColor(r.grp);
+    track.appendChild(fill);
+    const v=document.createElement("div"); v.className="v"; v.textContent=fmt(r.thb,0);
+    const pc=document.createElement("div"); pc.className="pc"; pc.textContent=(r.thb/t*100).toFixed(1)+"%";
+    row.append(nm,track,v,pc); box.appendChild(row);
+  });
+}
+
+/* ── init ── */
+updateTop();
+greet();
+</script>
+</body>
+</html>
