@@ -43,18 +43,17 @@
   .tabs button.on .ic{filter:none;opacity:1}
 
   #msgs{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
-  .bub{max-width:82%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;
+  .bub{max-width:85%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.55;
        white-space:pre-wrap;word-break:break-word;animation:pop .18s ease-out}
   @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion: reduce){ .bub{animation:none} }
   .bub.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:6px}
   .bub.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--border);
            border-bottom-left-radius:6px;box-shadow:0 1px 4px rgba(224,68,124,.08)}
-  .bub.bot b{color:var(--accent-deep)}
   .bub .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .chip-num{background:var(--surface2);border:1px solid var(--border);color:var(--accent-deep);
-            padding:5px 12px;border-radius:14px;font-size:13.5px;font-weight:700;cursor:pointer;
-            font-variant-numeric:tabular-nums}
+            padding:6px 13px;border-radius:14px;font-size:13.5px;font-weight:700;cursor:pointer;
+            font-variant-numeric:tabular-nums;font-family:inherit}
   .chip-num:active{background:var(--accent);color:#fff}
   .quick{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
   .quick button{background:var(--surface);border:1px solid var(--border);color:var(--ink2);
@@ -84,7 +83,6 @@
         font-variant-numeric:tabular-nums}
   .pill.up{background:#e3f4e3;color:var(--up)} .pill.down{background:#fde7e7;color:var(--down)}
   .pill.flat{background:var(--surface2);color:var(--muted)}
-  .pill small{font-weight:500;opacity:.75}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;
         padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(224,68,124,.05)}
@@ -131,15 +129,17 @@
       <div id="msgs"></div>
       <div class="quick">
         <button data-q="สรุป">📊 สรุป</button>
-        <button data-q="ตัวอย่าง">✍️ วิธีพิมพ์</button>
         <button id="q-cam">📷 อ่านจากรูป</button>
+        <button id="q-import">📁 นำเข้าไฟล์</button>
+        <button id="q-export">💾 สำรองไฟล์</button>
       </div>
       <div class="inputrow">
         <button class="att" id="att" title="แนบรูป">📷</button>
-        <textarea id="inp" rows="1" placeholder="เช่น dime 135.17 fx 33.28"></textarea>
+        <textarea id="inp" rows="1" placeholder="พิมพ์ชื่อ + ตัวเลข เช่น TLUS500 6499.64"></textarea>
         <button class="send" id="send" title="ส่ง">➤</button>
       </div>
       <input type="file" id="file" accept="image/*" style="display:none">
+      <input type="file" id="jfile" accept=".json" style="display:none">
     </div>
   </section>
 
@@ -192,8 +192,8 @@
 
 <script>
 "use strict";
-/* ── shared storage (คีย์เดียวกับแอปหลัก index.html — ข้อมูลชุดเดียวกัน) ── */
-const KEY3="emil_portfolio_v2", KEY2="emil_portfolio_holdings_v1";
+/* ══ shared storage — คีย์เดียวกับแอปหลัก ══ */
+const KEY3="emil_portfolio_v2", KEY2="emil_portfolio_holdings_v1", KEYL="emil_moni_learned_v1";
 const SLOT={us:"var(--us)",fund:"var(--fund)",tax:"var(--tax)",cash:"var(--cash)",
             gold:"var(--gold)",etf:"var(--etf)",other:"var(--other)"};
 const GROUPS=[["us","หุ้น US"],["fund","กองทุนรวม"],["tax","ลดหย่อนภาษี"],["cash","เงินสด"],
@@ -207,10 +207,10 @@ const DEF_ACCOUNTS=[
   {id:"dsave", name:"เงินสด • Dime Save",      grp:"cash", cur:"THB", off:false},
   {id:"fcd",   name:"เงินสด • Dime FCD (ดอกเบี้ย 4.5%)", grp:"cash", cur:"USD", off:false},
 ];
-const ALIASES={
-  dime:["dime","ไดม์","หุ้น"], wxgen:["wxgen","กองทุนทั่วไป","ทั่วไป","กองทุน"],
-  wxtax:["wxtax","ลดหย่อน","ภาษี"], bank:["bank","ธนาคาร","แบงค์"],
-  dsave:["dsave","เซฟ"], fcd:["fcd"],
+const WALLET_ALIASES={
+  dime:["dime","ไดม์"], wxgen:["wxgen","กองทุนทั่วไป","กองทั่วไป"],
+  wxtax:["wxtax","ลดหย่อน","กองภาษี"], bank:["bank","ธนาคาร","แบงค์"],
+  dsave:["dsave"], fcd:["fcd"],
 };
 
 function jload(k){ try{const s=localStorage.getItem(k); if(s) return JSON.parse(s);}catch(e){} return null; }
@@ -219,6 +219,7 @@ let db=jload(KEY3);
 if(!db){ db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),entries:[]}; jsave(KEY3,db); }
 let holds=jload(KEY2)||{snaps:[]};
 if(holds && !holds.snaps) holds={snaps:[{asof:holds.asof||"",items:holds.items||[]}]};
+let learned=jload(KEYL)||{};   /* ชื่อที่บอทเคยถามแล้วจำไว้: {nameLower:{name,grp,cur}} */
 
 const fmt=(n,d=2)=>Number(n).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sorted=()=>db.entries.slice().sort((a,b)=>a.date<b.date?-1:1);
@@ -230,8 +231,107 @@ const grpColor=k=>SLOT[k]||SLOT.other;
 const sign=n=>n>=0?"+":"−";
 const cls=n=>n>0.005?"up":n<-0.005?"down":"flat";
 const today=()=>new Date().toISOString().slice(0,10);
+const lastFx=()=>{const es=sorted(); return es.length?es[es.length-1].fx:33;};
+function latestSnap(){
+  if(!holds.snaps.length) return null;
+  return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[holds.snaps.length-1];
+}
+function normGrp(g){ return g==="dime"?"us":g==="gen"?"fund":g; }
+function holdThb(h,fx){ return h.cur==="USD"?h.val*fx:h.val; }
+function cashOf(e){ if(!e) return 0;
+  return Object.keys(e.vals).reduce((s,id)=>{const a=accById(id);
+    return s+((a&&a.grp==="cash")?thbVal(e,id):0);},0); }
+function holdingsTotal(){
+  const s=latestSnap(); if(!s) return null;
+  const fx=lastFx(), es=sorted();
+  return s.items.reduce((t,h)=>t+holdThb(h,fx),0)+cashOf(es[es.length-1]);
+}
 
-/* ── tabs ── */
+/* ══ พจนานุกรมชื่อ: กระเป๋า + รายตัวทุกตัว + ที่เรียนรู้ ══ */
+function buildDict(){
+  const d=[];
+  db.accounts.forEach(a=>{
+    d.push({key:a.id.toLowerCase(),kind:"wallet",id:a.id});
+    (WALLET_ALIASES[a.id]||[]).forEach(al=>d.push({key:al.toLowerCase(),kind:"wallet",id:a.id}));
+    const w=a.name.replace(/[()•!]/g," ").trim().split(/\s+/)[0];
+    if(w && w.length>=3) d.push({key:w.toLowerCase(),kind:"wallet",id:a.id});
+  });
+  const s=latestSnap();
+  if(s) s.items.forEach(h=>d.push({key:h.name.toLowerCase(),kind:"holding",
+    name:h.name,grp:normGrp(h.grp),cur:h.cur}));
+  Object.values(learned).forEach(l=>d.push({key:l.name.toLowerCase(),kind:"holding",
+    name:l.name,grp:l.grp,cur:l.cur}));
+  /* ชื่อยาวก่อน กันชนกัน เช่น TLUS500-UH-X ต้องชนะ TLUS500 */
+  d.sort((a,b)=>b.key.length-a.key.length);
+  return d;
+}
+const isWordChar=c=>/[a-z0-9ก-๙]/i.test(c||"");
+
+/* หา "ตัวเลขค่า" ตัวแรกในช่วง (ข้ามเลขที่ตามด้วย % หรือนำหน้าด้วย +/-) */
+function pickNumber(str){
+  const re=/(\d+(?:\.\d+)?)/g; let m;
+  while((m=re.exec(str))){
+    const before=str.slice(0,m.index).trimEnd().slice(-1);
+    const after=str.slice(m.index+m[0].length).trimStart()[0];
+    if(before==="+"||before==="-"||before==="−"||before==="(") continue;
+    if(after==="%") continue;
+    return {val:Number(m[1]), idx:m.index, len:m[0].length};
+  }
+  return null;
+}
+
+/* parse ข้อความอิสระ (ทั้งพิมพ์เองและจาก OCR) */
+function parseFree(text, windowed){
+  const res={wallet:{},holds:[],unknown:[],fx:null};
+  let s=text.replace(/,/g,"");
+  s=s.replace(/(?:^|\s)(?:fx|เรท)\s*=?\s*(\d+(?:\.\d+)?)/gi,(m,v)=>{
+    const n=Number(v);
+    if(n>=15&&n<=60&&res.fx==null){res.fx=n; return " ";}
+    return m;   /* เลขนอกช่วงเรทจริง ไม่ใช่ fx */
+  });
+  const dict=buildDict();
+  const low=()=>s.toLowerCase();
+  dict.forEach(e=>{
+    let from=0;
+    while(true){
+      const i=low().indexOf(e.key,from);
+      if(i<0) break;
+      const j=i+e.key.length;
+      if(isWordChar(s[i-1])||isWordChar(s[j])){ from=j; continue; }
+      /* หน้าต่างหาเลข: ถึงชื่อถัดไปหรือ 90 ตัวอักษร (โหมดรูป) / จบบรรทัด (โหมดพิมพ์) */
+      let end;
+      if(windowed){ end=Math.min(s.length,j+90);
+        dict.forEach(o=>{ if(o===e)return; const k=low().indexOf(o.key,j);
+          if(k>=0&&k<end&&!isWordChar(s[k-1])) end=k; });
+      }else{
+        const nl=s.indexOf("\n",j); end=nl<0?s.length:nl;
+      }
+      const pick=pickNumber(s.slice(j,end));
+      if(pick){
+        const abs=j+pick.idx;
+        s=s.slice(0,i)+" ".repeat(abs+pick.len-i)+s.slice(abs+pick.len);
+        if(e.kind==="wallet") res.wallet[e.id]=pick.val;
+        else if(!res.holds.some(h=>h.name===e.name))
+          res.holds.push({name:e.name,grp:e.grp,cur:e.cur,val:pick.val});
+      }
+      from=j;
+      break;
+    }
+  });
+  if(!windowed){
+    /* ชื่อแปลกใหม่ + ตัวเลข → เก็บไว้ถามผู้ใช้ */
+    [...s.matchAll(/([A-Za-zก-๙][A-Za-z0-9ก-๙.\-]{1,29})[ \t:=]+(\d+(?:\.\d+)?)(?!\s*%)/g)]
+      .forEach(m=>{
+        const nm=m[1], v=Number(m[2]);
+        if(/^(fx|เรท|usd|thb|บาท|วันนี้|รวม|แล้ว|เป็น|คือ|ที่|กับ|ทำไม)$/i.test(nm)) return;
+        if(v<5) return;   /* เลขเล็กๆ ในประโยคทั่วไป ไม่ใช่มูลค่า */
+        res.unknown.push({name:nm,val:v});
+      });
+  }
+  return res;
+}
+
+/* ══ tabs ══ */
 document.querySelectorAll(".tabs button").forEach(b=>{
   b.addEventListener("click",()=>{
     document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
@@ -242,110 +342,179 @@ document.querySelectorAll(".tabs button").forEach(b=>{
   });
 });
 
-/* ── chat core ── */
+/* ══ chat ui ══ */
 const msgs=document.getElementById("msgs");
 function bubble(text,who){
   const d=document.createElement("div"); d.className="bub "+who; d.textContent=text;
   msgs.appendChild(d); scrollBottom(); return d;
 }
-function botHTMLBubble(){ const d=document.createElement("div"); d.className="bub bot";
-  msgs.appendChild(d); return d; }
+function chipsBubble(text,options,onPick){
+  const d=document.createElement("div"); d.className="bub bot";
+  const t=document.createElement("div"); t.textContent=text; d.appendChild(t);
+  const c=document.createElement("div"); c.className="chips";
+  options.forEach(op=>{
+    const b=document.createElement("button"); b.className="chip-num"; b.type="button";
+    b.textContent=op.label;
+    b.addEventListener("click",()=>{ c.remove();
+      const pick=document.createElement("div");
+      pick.style.cssText="margin-top:6px;color:var(--accent-deep);font-weight:700";
+      pick.textContent="→ "+op.label; d.appendChild(pick);
+      onPick(op); });
+    c.appendChild(b);
+  });
+  d.appendChild(c); msgs.appendChild(d); scrollBottom(); return d;
+}
 function scrollBottom(){ const v=document.getElementById("view-chat"); v.scrollTop=v.scrollHeight; }
 
-function greet(){
-  const es=sorted();
-  if(es.length){
-    const last=es[es.length-1];
-    bubble("สวัสดีค่า 🌸 พอร์ตล่าสุด ("+last.date+") รวม "+fmt(totalOf(last),0)+" ฿\nพิมพ์ค่าใหม่มาได้เลย หรือกด 📊 สรุป",
-      "bot");
-  }else{
-    bubble("สวัสดีค่า 🌸 ยังไม่มีข้อมูลเลย เริ่มจดกันเลยมั้ย?\n\nพิมพ์แบบนี้ได้เลย:\ndime 135.17 fx 33.28\nกองทุน 13706.99\nลดหย่อน 3060.15\n\nหรือกด ✍️ วิธีพิมพ์ ดูตัวอย่างเพิ่ม","bot");
-  }
+/* ══ คิวถามชื่อใหม่ ══ */
+let pendQ=[];
+function queueUnknowns(list){ pendQ.push(...list); askNext(); }
+function askNext(){
+  if(!pendQ.length) return;
+  const u=pendQ.shift();
+  chipsBubble("“"+u.name+"” ("+fmt(u.val)+") เป็นอะไรคะ? แตะเลือกได้เลย เดี๋ยวจำไว้ให้ตลอด 💕",
+    GROUPS.map(([k,n])=>({label:n,k})),
+    op=>{
+      if(op.k==="cash"){
+        const id="a"+Date.now();
+        db.accounts.push({id,name:u.name,grp:"cash",cur:"THB",off:false});
+        applyParsed({wallet:{[id]:u.val},holds:[],unknown:[],fx:null});
+        askNext();
+      }else{
+        chipsBubble("สกุลของ “"+u.name+"” คือ?",
+          [{label:"บาท ฿",cur:"THB"},{label:"ดอลลาร์ $",cur:"USD"}],
+          op2=>{
+            learned[u.name.toLowerCase()]={name:u.name,grp:op.k,cur:op2.cur};
+            jsave(KEYL,learned);
+            applyParsed({wallet:{},holds:[{name:u.name,grp:op.k,cur:op2.cur,val:u.val}],unknown:[],fx:null});
+            askNext();
+          });
+      }
+    });
 }
 
-/* ── parser ── */
-function parseMsg(text){
-  const vals={}; let fx=null;
-  const clean=text.replace(/,/g,"");
-  const fxm=clean.match(/(?:fx|เรท)\s*=?\s*([\d.]+)/i);
-  if(fxm) fx=Number(fxm[1]);
-  clean.split(/\n+/).forEach(line=>{
-    Object.keys(ALIASES).forEach(id=>{
-      ALIASES[id].forEach(al=>{
-        const re=new RegExp("(?:^|\\s)"+al+"\\s+([\\d.]+)","i");
-        const m=line.match(re);
-        if(m && vals[id]==null) vals[id]=Number(m[1]);
-      });
-    });
-    db.accounts.forEach(a=>{
-      if(vals[a.id]!=null) return;
-      if(ALIASES[a.id]) return;
-      const nm=a.name.replace(/[()•]/g," ").trim().split(/\s+/)[0];
-      if(nm.length<2) return;
-      const re=new RegExp("(?:^|\\s)"+nm.replace(/[.*+?^${}|[\]\\]/g,"\\$&")+"\\s+([\\d.]+)","i");
-      const m=line.match(re);
-      if(m) vals[a.id]=Number(m[1]);
-    });
-  });
-  return {vals,fx,count:Object.keys(vals).length};
-}
-
-function saveFromChat(p){
-  const es=sorted(), last=es[es.length-1];
+/* ══ บันทึก + ตอบพร้อมเทียบของเก่า ══ */
+function applyParsed(p){
+  const parts=[];
+  let storageFail=false;
   const d=today();
-  let entry=db.entries.find(x=>x.date===d);
-  const prevMax=es.length?Math.max(...es.map(totalOf)):0;
-  if(!entry){
-    entry={date:d, fx:p.fx||(last?last.fx:33), vals:last?{...last.vals}:{}};
-    db.entries.push(entry);
-  }else if(p.fx){ entry.fx=p.fx; }
-  Object.assign(entry.vals,p.vals);
-  const ok=jsave(KEY3,db);
-  const tot=totalOf(entry);
-  const prev=sorted().filter(e=>e.date<d).pop();
-  let msg="จดให้แล้วค่า ✅ ("+d+")\n";
-  Object.keys(p.vals).forEach(id=>{
-    const a=accById(id);
-    msg+="• "+(a?a.name:id)+" = "+fmt(p.vals[id])+(a&&a.cur==="USD"?" USD":" ฿")+"\n";
-  });
-  if(p.fx) msg+="• FX = "+p.fx+"\n";
-  msg+="\nรวมทั้งพอร์ต "+fmt(tot,0)+" ฿";
-  if(prev){
-    const df=tot-totalOf(prev), pc=df/totalOf(prev)*100;
-    msg+="  ("+sign(df)+fmt(Math.abs(df),0)+" / "+sign(df)+Math.abs(pc).toFixed(2)+"%)";
+
+  /* wallet entries (บันทึกรายวัน) */
+  if(p.fx!=null || Object.keys(p.wallet).length){
+    const es=sorted(), last=es[es.length-1];
+    let entry=db.entries.find(x=>x.date===d);
+    if(!entry){
+      entry={date:d, fx:p.fx!=null?p.fx:(last?last.fx:33), vals:last?{...last.vals}:{}};
+      db.entries.push(entry);
+    }else if(p.fx!=null) entry.fx=p.fx;
+    Object.assign(entry.vals,p.wallet);
+    if(!jsave(KEY3,db)) storageFail=true;
+    Object.keys(p.wallet).forEach(id=>{
+      const a=accById(id);
+      parts.push("💼 "+(a?a.name:id)+" = "+fmt(p.wallet[id])+(a&&a.cur==="USD"?" USD":" ฿"));
+    });
+    if(p.fx!=null) parts.push("💱 FX = "+p.fx);
+    const tot=totalOf(entry);
+    const prev=sorted().filter(e=>e.date<d).pop();
+    let line="\n🧺 รวมพอร์ต "+fmt(tot,0)+" ฿";
+    if(prev){ const df=tot-totalOf(prev);
+      line+="  ("+sign(df)+fmt(Math.abs(df),0)+" / "+sign(df)+Math.abs(df/totalOf(prev)*100).toFixed(2)+"% จาก "+prev.date+")"; }
+    parts.push(line);
   }
-  if(!ok) msg+="\n⚠️ เบราว์เซอร์นี้บันทึกถาวรไม่ได้ ข้อมูลจะหายเมื่อปิด";
+
+  /* holdings (รายตัว — เก็บเป็นประวัติ snapshot) */
+  if(p.holds.length){
+    const prevSnap=latestSnap();
+    let snap=holds.snaps.find(x=>x.asof===d);
+    if(!snap){
+      snap={asof:d, items:prevSnap?JSON.parse(JSON.stringify(prevSnap.items)):[]};
+      holds.snaps.push(snap);
+    }
+    p.holds.forEach(h=>{
+      const old=(prevSnap&&prevSnap.asof!==d)
+        ? prevSnap.items.find(x=>x.name.toLowerCase()===h.name.toLowerCase())
+        : (snap.items.find(x=>x.name.toLowerCase()===h.name.toLowerCase())||null);
+      const oldVal=old?old.val:null;
+      const it=snap.items.find(x=>x.name.toLowerCase()===h.name.toLowerCase());
+      if(it){ it.val=h.val; if(h.grp)it.grp=h.grp; if(h.cur)it.cur=h.cur; }
+      else snap.items.push({name:h.name,grp:h.grp||"other",cur:h.cur||"THB",val:h.val});
+      const unit=(h.cur==="USD")?" USD":" ฿";
+      let ln="🌸 "+h.name+" ("+ (GNAME[h.grp]||"") +") = "+fmt(h.val)+unit;
+      if(oldVal!=null && oldVal!==h.val){
+        const df=h.val-oldVal;
+        ln+="  ("+sign(df)+fmt(Math.abs(df))+" / "+sign(df)+Math.abs(df/oldVal*100).toFixed(2)+"% จากครั้งก่อน)";
+      }else if(oldVal==null) ln+="  (รายการใหม่ 🎀)";
+      parts.push(ln);
+    });
+    if(!jsave(KEY2,holds)) storageFail=true;
+    const ht=holdingsTotal();
+    if(ht!=null) parts.push("\n💗 รวมรายตัว "+fmt(ht,0)+" ฿");
+  }
+
+  if(!parts.length) return false;
+  let msg="จดให้แล้วค่า ✅ ("+d+")\n"+parts.join("\n");
+  msg+="\n\nดูกราฟได้ที่แท็บ 📊 สรุปพอร์ต ด้านล่างเลย";
+  if(storageFail) msg+="\n⚠️ เบราว์เซอร์นี้บันทึกถาวรไม่ได้ ข้อมูลจะหายเมื่อปิด";
   bubble(msg,"bot");
   updateTop();
-  if(tot>prevMax && prevMax>0) celebrate();
+  return true;
+}
+
+/* ══ ตอบคำถาม/ข้อความทั่วไป (ไม่มีตัวเลข) ══ */
+function smallTalk(text){
+  if(/กราฟ|กราฟฟ|พลอต|plot|แนวโน้ม|เทรนด์/i.test(text)){
+    bubble("กราฟอยู่แท็บ 📊 สรุปพอร์ต ข้างล่างค่ะ — มีเส้นมูลค่ารวม, อัตราโตรายวัน %, โดนัทสัดส่วน และรายตัวครบเลย 🌷","bot"); return;
+  }
+  if(/ทำไม|เพราะอะไร/.test(text) && /0|ศูนย์/.test(text)){
+    bubble("ที่รวมพอร์ตเป็น 0 เพราะยังไม่มี “บันทึกรายวันของกระเป๋า” เลยค่ะ (Dime/กองทุน/เงินสด)\n\nถ้าเพิ่งเริ่มใช้เครื่องนี้ ข้อมูลเก่าอาจอยู่คนละที่เก็บ — กด 📁 นำเข้าไฟล์ แล้วเลือกไฟล์ backup ที่มีอยู่ได้เลย เดี๋ยวขึ้นครบทุกอย่าง 💕","bot"); return;
+  }
+  if(/เทียบ|ของเก่า|ก่อนหน้า|เมื่อวาน/.test(text)){ summaryBubble(); return; }
+  if(/สวัสดี|หวัดดี|hello|hi/i.test(text)){
+    bubble("สวัสดีค่า 🌸 พิมพ์ชื่อ+ตัวเลขมาได้เลย เช่น “TLUS500-UH-X 6499.64” หรือแนบรูปพอร์ตก็ได้นะ","bot"); return;
+  }
+  bubble("ยังตอบคำถามยาวๆ ไม่เก่งค่า 🥺 แต่ถ้าอยากจด: พิมพ์ชื่อ+ตัวเลข (ชื่ออะไรก็ได้ เดี๋ยวถามต่อเองว่าเป็นหุ้น/กอง/ทอง)\nอยากดูสรุป: พิมพ์ “สรุป” หรือแท็บ 📊 ด้านล่างเลย","bot");
 }
 
 function summaryBubble(){
   const es=sorted();
-  if(!es.length){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ค่าแรกมาก่อนนะ","bot"); return; }
-  const last=es[es.length-1], first=es[0];
-  const tot=totalOf(last);
-  const byG={};
-  Object.keys(last.vals).forEach(id=>{
-    const a=accById(id); const k=a?a.grp:"other";
-    byG[k]=(byG[k]||0)+thbVal(last,id);
-  });
-  let m="📊 พอร์ตล่าสุด ("+last.date+")\nรวม "+fmt(tot,0)+" ฿\n\n";
-  GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/tot*100).toFixed(1)+"%)\n"; });
-  if(es.length>1){
-    const d0=tot-totalOf(first), p0=d0/totalOf(first)*100;
-    m+="\nตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ฿ ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
+  const snap=latestSnap();
+  if(!es.length && !snap){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ชื่อ+ตัวเลข หรือกด 📁 นำเข้าไฟล์ backup ก่อนนะ","bot"); return; }
+  let m="📊 สรุปพอร์ต\n";
+  if(es.length){
+    const last=es[es.length-1], first=es[0], prev=es[es.length-2];
+    const tot=totalOf(last);
+    m+="🧺 รวมพอร์ต ("+last.date+"): "+fmt(tot,0)+" ฿\n";
+    if(prev){ const df=tot-totalOf(prev);
+      m+="• เทียบครั้งก่อน ("+prev.date+"): "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(df/totalOf(prev)*100).toFixed(2)+"%)\n"; }
+    if(es.length>1){ const d0=tot-totalOf(first);
+      m+="• ตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(d0/totalOf(first)*100).toFixed(2)+"%)\n"; }
+    const byG={};
+    Object.keys(last.vals).forEach(id=>{const a=accById(id);
+      const k=a?a.grp:"other"; byG[k]=(byG[k]||0)+thbVal(last,id);});
+    GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/totalOf(last)*100).toFixed(1)+"%)\n"; });
   }
+  if(snap && snap.items.length){
+    m+="\n💗 รายตัวล่าสุด ("+snap.asof+"): "+snap.items.length+" รายการ";
+    const ht=holdingsTotal();
+    if(ht!=null) m+=" รวม "+fmt(ht,0)+" ฿";
+  }
+  m+="\n\nกราฟทั้งหมดอยู่แท็บ 📊 สรุปพอร์ต ล่างขวาเลยค่า";
   bubble(m,"bot");
 }
 
-function helpBubble(){
-  bubble("พิมพ์ได้หลายแบบเลยค่า ✍️\n\n"+
-    "dime 135.17 fx 33.28\nกองทุน 13706.99\nลดหย่อน 3060.15\nธนาคาร 2000\nfcd 7.34\n\n"+
-    "• พิมพ์หลายบรรทัดในข้อความเดียวได้\n• ตัวที่ไม่พิมพ์ ระบบพกยอดเดิมมาให้อัตโนมัติ\n"+
-    "• พิมพ์ \"สรุป\" ดูยอดรวม\n• กด 📷 แนบรูปพอร์ต เดี๋ยวอ่านตัวเลขให้แตะเลือก","bot");
+function greet(){
+  const es=sorted();
+  if(es.length||(latestSnap()&&latestSnap().items.length)){
+    const last=es[es.length-1];
+    bubble("สวัสดีค่า 🌸 "+(last?("พอร์ตล่าสุด ("+last.date+") รวม "+fmt(totalOf(last),0)+" ฿"):"มีข้อมูลรายตัวอยู่แล้ว")+"\nพิมพ์ชื่อ+ตัวเลขมาอัปเดตได้เลย หรือแนบรูปพอร์ตก็ได้","bot");
+  }else{
+    chipsBubble("สวัสดีค่า 🌸 ยังไม่มีข้อมูลในเครื่องนี้เลย\n\n• พิมพ์ชื่อ+ตัวเลขได้เลย เช่น “TLUS500-UH-X 6499.64” (ชื่ออะไรก็ได้ เดี๋ยวถามเองว่าเป็นหุ้น/กอง/ทอง แล้วจำไว้ตลอด)\n• หรือแนบรูปพอร์ต 📷 เดี๋ยวอ่านให้\n• ถ้ามีไฟล์ backup จากแอปหลัก กดปุ่มนี้เลย 👇",
+      [{label:"📁 นำเข้าไฟล์ backup"}],
+      ()=>document.getElementById("jfile").click());
+  }
 }
 
+/* ══ ส่งข้อความ ══ */
 function handleSend(){
   const inp=document.getElementById("inp");
   const text=inp.value.trim(); if(!text) return;
@@ -354,13 +523,15 @@ function handleSend(){
 }
 function route(text){
   if(/^สรุป/.test(text)){ summaryBubble(); return; }
-  if(/^(ตัวอย่าง|ช่วย|help|วิธี)/i.test(text)){ helpBubble(); return; }
-  const p=parseMsg(text);
-  if(p.count===0 && !p.fx){
-    bubble("อ่านไม่ออกค่า 🥺 ลองพิมพ์แบบนี้นะ:\ndime 135.17 fx 33.28\nหรือกด ✍️ วิธีพิมพ์","bot");
+  if(/^(ตัวอย่าง|ช่วย|help|วิธี)/i.test(text)){
+    bubble("พิมพ์สบายๆ ได้เลยค่า ✍️ ชื่อ + ตัวเลข เช่น\n\nTLUS500-UH-X 6499.64\nTSLA 36.70\nกองทุนทั่วไป 13788.31\nทองแท่ง 16350\ndime 135.17 fx 33.28\n\n• หลายบรรทัดในข้อความเดียวได้\n• ชื่อใหม่ที่ไม่รู้จัก เดี๋ยวถามว่าเป็นหุ้น/กอง/ทอง แล้วจำไว้เลย\n• แนบรูป 📷 เดี๋ยวจับคู่ชื่อ-ตัวเลขให้อัตโนมัติ","bot");
     return;
   }
-  saveFromChat(p);
+  const p=parseFree(text,false);
+  const known=(p.fx!=null)||Object.keys(p.wallet).length||p.holds.length;
+  if(known) applyParsed(p);
+  if(p.unknown.length) queueUnknowns(p.unknown);
+  if(!known && !p.unknown.length) smallTalk(text);
 }
 document.getElementById("send").addEventListener("click",handleSend);
 document.getElementById("inp").addEventListener("keydown",e=>{
@@ -370,7 +541,7 @@ document.querySelectorAll(".quick button[data-q]").forEach(b=>{
   b.addEventListener("click",()=>{ bubble(b.dataset.q,"me"); route(b.dataset.q); });
 });
 
-/* ── OCR (อ่านตัวเลขจากรูป — ทำในเครื่อง ไม่ส่งรูปขึ้นเซิร์ฟเวอร์) ── */
+/* ══ OCR: จับคู่ชื่อ↔ตัวเลขจากรูปให้เอง ══ */
 const fileInput=document.getElementById("file");
 document.getElementById("att").addEventListener("click",()=>fileInput.click());
 document.getElementById("q-cam").addEventListener("click",()=>fileInput.click());
@@ -392,69 +563,95 @@ fileInput.addEventListener("change",async ev=>{
     const {data}=await ocrLib.recognize(f,"eng");
     st.remove();
     const text=data.text||"";
-    const fxm=text.replace(/,/g,"").match(/1\s*USD\s*=\s*([\d.]+)/i);
+    const p=parseFree(text,true);   /* โหมดหน้าต่างข้ามบรรทัด */
+    const found=(p.fx!=null)||Object.keys(p.wallet).length||p.holds.length;
+    if(found){
+      let lines=[];
+      Object.keys(p.wallet).forEach(id=>{const a=accById(id);
+        lines.push("💼 "+(a?a.name:id)+" = "+fmt(p.wallet[id]));});
+      p.holds.forEach(h=>lines.push("🌸 "+h.name+" = "+fmt(h.val)+(h.cur==="USD"?" USD":" ฿")));
+      if(p.fx!=null) lines.push("💱 FX = "+p.fx);
+      chipsBubble("อ่านจากรูปได้แบบนี้ค่า 👇 ถูกมั้ย?\n\n"+lines.join("\n"),
+        [{label:"✅ บันทึกเลย",ok:true},{label:"❌ ไม่ใช่ ยกเลิก",ok:false}],
+        op=>{ if(op.ok){ applyParsed(p); if(p.unknown&&p.unknown.length) queueUnknowns(p.unknown); }
+              else bubble("โอเคค่า ไม่บันทึกนะ พิมพ์เองหรือแตะตัวเลขด้านล่างได้เลย","bot"); });
+      return;
+    }
     const nums=[...new Set((text.match(/\d[\d,]*\.\d\d/g)||[]).map(x=>x.replace(/,/g,"")))]
       .map(Number).filter(n=>n>0.1&&n<10000000).slice(0,14);
     if(!nums.length){ bubble("อ่านไม่เจอตัวเลขในรูปเลยค่า 🥺 ลองพิมพ์เองนะ","bot"); return; }
-    const d=botHTMLBubble();
+    const d=document.createElement("div"); d.className="bub bot";
     const t=document.createElement("div");
-    t.textContent="เจอตัวเลขพวกนี้ในรูปค่า 👇 แตะตัวเลขเพื่อใส่ในช่องพิมพ์ แล้วเติมชื่อบัญชีข้างหน้า (เช่น dime …)"+
-      (fxm?("\n\nFX ที่เจอ: 1 USD = "+fxm[1]):"");
+    t.textContent="จับคู่ชื่ออัตโนมัติไม่ได้ค่า 🥺 แต่เจอตัวเลขพวกนี้ แตะเพื่อใส่ช่องพิมพ์แล้วเติมชื่อข้างหน้าได้เลย";
     d.appendChild(t);
     const chips=document.createElement("div"); chips.className="chips";
-    if(fxm){
-      const c=document.createElement("button"); c.className="chip-num";
-      c.textContent="fx "+fxm[1];
-      c.addEventListener("click",()=>{ addToInput("fx "+fxm[1]); });
-      chips.appendChild(c);
-    }
-    nums.forEach(n=>{
-      const c=document.createElement("button"); c.className="chip-num"; c.textContent=fmt(n);
-      c.addEventListener("click",()=>addToInput(String(n)));
-      chips.appendChild(c);
-    });
-    d.appendChild(chips); scrollBottom();
+    nums.forEach(n=>{ const c=document.createElement("button"); c.className="chip-num";
+      c.type="button"; c.textContent=fmt(n);
+      c.addEventListener("click",()=>{ const inp=document.getElementById("inp");
+        inp.value=(inp.value?inp.value+" ":"")+n+" "; inp.focus(); });
+      chips.appendChild(c); });
+    d.appendChild(chips); msgs.appendChild(d); scrollBottom();
   }catch(e){
     st.remove();
     bubble("อ่านรูปไม่สำเร็จค่า 🥺 (โหลดตัวอ่านไม่ได้ หรือรูปไม่ชัด) พิมพ์ตัวเลขเองได้เลยนะ","bot");
   }
 });
-function addToInput(s){
-  const inp=document.getElementById("inp");
-  inp.value=(inp.value?inp.value+(inp.value.endsWith(" ")?"":" "):"")+s+" ";
-  inp.focus();
-}
 
-/* ── celebrate ── */
-function celebrate(){
-  bubble("นิวไฮ! พอร์ตทำจุดสูงสุดใหม่ 🎉💖","bot");
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  ["🎉","💖","✨","🌸","💰"].forEach((em,i)=>{
-    const s=document.createElement("span"); s.className="fx"; s.textContent=em;
-    s.style.left=(15+i*17)+"%"; s.style.bottom="90px";
-    s.style.animationDelay=(i*0.08)+"s";
-    document.body.appendChild(s);
-    setTimeout(()=>s.remove(),1900);
-  });
-}
+/* ══ นำเข้า/สำรองไฟล์ (Moni อาจอยู่คนละที่เก็บกับแอปหลักบน iOS) ══ */
+document.getElementById("q-import").addEventListener("click",()=>document.getElementById("jfile").click());
+document.getElementById("jfile").addEventListener("change",ev=>{
+  const f=ev.target.files[0]; ev.target.value=""; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(d && (d.v===2||d.v===3) && Array.isArray(d.accounts) && Array.isArray(d.entries)){
+        db={accounts:d.accounts,entries:d.entries}; jsave(KEY3,db);
+        if(d.holdings){ holds=d.holdings.snaps?d.holdings:
+          {snaps:[{asof:d.holdings.asof||"",items:d.holdings.items||[]}]}; jsave(KEY2,holds); }
+      }else{
+        const entries=Array.isArray(d)?d:(d&&d.entries);
+        if(!Array.isArray(entries)||!entries.every(x=>x.date&&typeof x.usd==="number")) throw 0;
+        db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),
+            entries:entries.map(e=>({date:e.date,fx:e.fx,vals:{dime:e.usd,wxgen:e.gen,wxtax:e.tax,
+              bank:Math.max(0,Math.round((e.cash-0.33-7.34*e.fx)*100)/100),dsave:0.33,fcd:7.34}}))};
+        jsave(KEY3,db);
+      }
+      updateTop();
+      bubble("นำเข้าข้อมูลสำเร็จค่า 🎉 มี "+db.entries.length+" วัน"+
+        (latestSnap()?(" + รายตัว "+latestSnap().items.length+" รายการ"):"")+
+        "\nกดแท็บ 📊 ดูกราฟได้เลย","bot");
+    }catch(e){ bubble("ไฟล์ไม่ถูกต้องค่า 🥺 ต้องเป็นไฟล์ backup .json จากแอปเรานะ","bot"); }
+  };
+  rd.readAsText(f);
+});
+document.getElementById("q-export").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({v:3,accounts:db.accounts,entries:db.entries,holdings:holds},null,2)],
+                      {type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="portfolio-backup-"+today()+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  bubble("ดาวน์โหลดไฟล์สำรองแล้วค่า 💾 เก็บไว้ดีๆ นะ","bot");
+});
 
-/* ── top mini + dashboard ── */
+/* ══ top ══ */
 function updateTop(){
   const es=sorted();
   const tEl=document.getElementById("top-total"), dEl=document.getElementById("top-diff");
-  if(!es.length){ tEl.textContent="—"; dEl.textContent=""; return; }
+  if(!es.length){ const ht=holdingsTotal();
+    tEl.textContent=ht!=null?fmt(ht,0)+" ฿":"—"; dEl.textContent=ht!=null?"รวมรายตัว":""; return; }
   const last=es[es.length-1], prev=es[es.length-2];
   tEl.textContent=fmt(totalOf(last),0)+" ฿";
-  if(prev){
-    const df=totalOf(last)-totalOf(prev);
-    dEl.textContent=sign(df)+fmt(Math.abs(df),0)+" จากครั้งก่อน";
-  }else dEl.textContent=last.date;
+  if(prev){ const df=totalOf(last)-totalOf(prev);
+    dEl.textContent=sign(df)+fmt(Math.abs(df),0)+" จากครั้งก่อน"; }
+  else dEl.textContent=last.date;
 }
 
+/* ══ dashboard ══ */
 function countUp(el,target){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches){
-    el.textContent=fmt(target,0)+" ฿"; return;
-  }
+    el.textContent=fmt(target,0)+" ฿"; return; }
   const t0=performance.now(), dur=700, from=target*0.85;
   function step(t){
     const k=Math.min(1,(t-t0)/dur), v=from+(target-from)*(1-Math.pow(1-k,3));
@@ -463,15 +660,18 @@ function countUp(el,target){
   }
   requestAnimationFrame(step);
 }
-
 function renderDash(){
   const es=sorted();
   const totalEl=document.getElementById("d-total");
-  if(!es.length){ totalEl.textContent="—"; return; }
+  if(!es.length){
+    const ht=holdingsTotal();
+    totalEl.textContent=ht!=null?fmt(ht,0)+" ฿":"—";
+    if(latestSnap()) drawHoldings({vals:{},fx:lastFx()});
+    return;
+  }
   const last=es[es.length-1], prev=es[es.length-2], first=es[0];
   const tot=totalOf(last);
   countUp(totalEl,tot);
-
   const day=document.getElementById("d-day"), since=document.getElementById("d-since");
   if(prev){
     const df=tot-totalOf(prev), pc=df/totalOf(prev)*100;
@@ -483,11 +683,7 @@ function renderDash(){
     since.className="pill "+cls(d0);
     since.textContent="ตั้งแต่เริ่ม "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
   }else{ since.className="pill flat"; since.textContent="ตั้งแต่เริ่ม —"; }
-
-  drawLine(es);
-  drawGrowth(es);
-  drawDonut(last);
-  drawHoldings(last);
+  drawLine(es); drawGrowth(es); drawDonut(last); drawHoldings(last);
 }
 
 const NS="http://www.w3.org/2000/svg";
@@ -533,7 +729,7 @@ function drawLine(es){
   const lastP=pts[pts.length-1];
   const lb=el("text",{x:Math.min(lastP[0],W-R-4),y:lastP[1]-11,"text-anchor":"end",
     "font-size":11,"font-weight":700,fill:"var(--ink2)"});
-  lb.textContent=fmt(totalOf(es[es.length-1]),0); svg.appendChild(lb);
+  lb.textContent=fmt(ts[ts.length-1],0); svg.appendChild(lb);
   svg.style.touchAction="none";
   svg.addEventListener("pointermove",ev=>{
     const r=svg.getBoundingClientRect(), mx=(ev.clientX-r.left)*(W/r.width);
@@ -571,8 +767,7 @@ function drawGrowth(es){
   const n=pcs.length, slot=(W-L-R)/n, bw=Math.min(24,slot*.55);
   pcs.forEach((p,i)=>{
     const x=L+slot*i+(slot-bw)/2, y=Y(Math.max(0,p.pc)), h=Math.abs(Y(p.pc)-zero);
-    const up=p.pc>=0;
-    const r=Math.min(4,h);
+    const up=p.pc>=0, r=Math.min(4,h);
     const d= up
       ? `M${x} ${zero} L${x} ${y+r} Q${x} ${y} ${x+r} ${y} L${x+bw-r} ${y} Q${x+bw} ${y} ${x+bw} ${y+r} L${x+bw} ${zero} Z`
       : `M${x} ${zero} L${x} ${zero+h-r} Q${x} ${zero+h} ${x+r} ${zero+h} L${x+bw-r} ${zero+h} Q${x+bw} ${zero+h} ${x+bw} ${zero+h-r} L${x+bw} ${zero} Z`;
@@ -602,6 +797,7 @@ function drawDonut(last){
     byG[k]=(byG[k]||0)+thbVal(last,id);
   });
   const t=Object.values(byG).reduce((s,v)=>s+v,0);
+  if(!t) return;
   const parts=GROUPS.filter(([k])=>byG[k]>0).map(([k,n])=>({k,n,v:byG[k]}));
   const cx=70,cy=70,r0=42,r1=66,pad=2/54;
   let a=0;
@@ -624,13 +820,12 @@ function drawDonut(last){
 function drawHoldings(last){
   const box=document.getElementById("holdings"), empty=document.getElementById("hold-empty");
   box.textContent="";
-  const snaps=holds.snaps||[];
-  const snap=snaps.length?snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[snaps.length-1]:null;
+  const snap=latestSnap();
   document.getElementById("h-asof").textContent=snap?"("+snap.asof+")":"";
-  const rows=snap?snap.items.map(h=>({name:h.name,grp:h.grp==="dime"?"us":h.grp==="gen"?"fund":h.grp,
-    thb:h.cur==="USD"?h.val*last.fx:h.val})):[];
-  const cash=Object.keys(last.vals).reduce((s,id)=>{
-    const a=accById(id); return s+((a&&a.grp==="cash")?thbVal(last,id):0);},0);
+  const fx=last.fx||lastFx();
+  const rows=snap?snap.items.map(h=>({name:h.name,grp:normGrp(h.grp),
+    thb:h.cur==="USD"?h.val*fx:h.val})):[];
+  const cash=cashOf(last);
   if(cash>0) rows.push({name:"เงินสด / Cash",grp:"cash",thb:cash});
   if(!rows.length){ empty.style.display="block"; return; }
   empty.style.display="none";
@@ -651,7 +846,7 @@ function drawHoldings(last){
   });
 }
 
-/* ── init ── */
+/* ══ init ══ */
 updateTop();
 greet();
 </script>
