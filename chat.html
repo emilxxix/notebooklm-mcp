@@ -220,6 +220,23 @@ if(!db){ db={accounts:JSON.parse(JSON.stringify(DEF_ACCOUNTS)),entries:[]}; jsav
 let holds=jload(KEY2)||{snaps:[]};
 if(holds && !holds.snaps) holds={snaps:[{asof:holds.asof||"",items:holds.items||[]}]};
 let learned=jload(KEYL)||{};   /* ชื่อที่บอทเคยถามแล้วจำไว้: {nameLower:{name,grp,cur}} */
+const KEYFX="emil_moni_fx_v1";
+let fxmap=jload(KEYFX)||{};    /* เรทรายวัน: {"2026-07-08":33.5, ...} */
+
+/* ── ซ่อมข้อมูลเสียจากเวอร์ชันก่อน (เรทหลุดช่วง 15-60, entry ว่างเปล่า 0฿) ── */
+(function sanitize(){
+  let dirty=false;
+  let lastGood=33.28;
+  db.entries.slice().sort((a,b)=>a.date<b.date?-1:1).forEach(e=>{
+    if(e.fx>=15&&e.fx<=60){ lastGood=e.fx; }
+    else{ e.fx=lastGood; dirty=true; }
+  });
+  const n=db.entries.length;
+  db.entries=db.entries.filter(e=>e.vals&&Object.keys(e.vals).length>0);
+  if(db.entries.length!==n) dirty=true;
+  if(dirty) jsave(KEY3,db);
+  Object.keys(fxmap).forEach(k=>{ if(!(fxmap[k]>=15&&fxmap[k]<=60)){ delete fxmap[k]; jsave(KEYFX,fxmap); } });
+})();
 
 const fmt=(n,d=2)=>Number(n).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sorted=()=>db.entries.slice().sort((a,b)=>a.date<b.date?-1:1);
@@ -231,7 +248,22 @@ const grpColor=k=>SLOT[k]||SLOT.other;
 const sign=n=>n>=0?"+":"−";
 const cls=n=>n>0.005?"up":n<-0.005?"down":"flat";
 const today=()=>new Date().toISOString().slice(0,10);
-const lastFx=()=>{const es=sorted(); return es.length?es[es.length-1].fx:33;};
+/* ── เรทของวันไหนก็ตาม: ดูจาก fx diary + entry ที่ใกล้วันนั้นที่สุด (ย้อนหลัง) ── */
+function fxOn(dateStr){
+  let best=null, bestDate="";
+  Object.keys(fxmap).forEach(k=>{ if(k<=dateStr && k>=bestDate){ bestDate=k; best=fxmap[k]; } });
+  sorted().forEach(e=>{ if(e.date<=dateStr && e.date>=bestDate && e.fx>=15 && e.fx<=60){
+    bestDate=e.date; best=e.fx; } });
+  return best!=null?best:33.28;
+}
+function fxPrevBefore(dateStr){
+  let best=null, bestDate="";
+  Object.keys(fxmap).forEach(k=>{ if(k<dateStr && k>=bestDate){ bestDate=k; best=fxmap[k]; } });
+  sorted().forEach(e=>{ if(e.date<dateStr && e.date>=bestDate && e.fx>=15 && e.fx<=60){
+    bestDate=e.date; best=e.fx; } });
+  return best;
+}
+const lastFx=()=>fxOn(today());
 function latestSnap(){
   if(!holds.snaps.length) return null;
   return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[holds.snaps.length-1];
@@ -241,10 +273,22 @@ function holdThb(h,fx){ return h.cur==="USD"?h.val*fx:h.val; }
 function cashOf(e){ if(!e) return 0;
   return Object.keys(e.vals).reduce((s,id)=>{const a=accById(id);
     return s+((a&&a.grp==="cash")?thbVal(e,id):0);},0); }
+function snapTotal(s){
+  const fx=fxOn(s.asof);
+  return s.items.reduce((t,h)=>t+holdThb(h,fx),0);
+}
 function holdingsTotal(){
   const s=latestSnap(); if(!s) return null;
-  const fx=lastFx(), es=sorted();
-  return s.items.reduce((t,h)=>t+holdThb(h,fx),0)+cashOf(es[es.length-1]);
+  const es=sorted();
+  return snapTotal(s)+cashOf(es[es.length-1]);
+}
+/* อนุกรมมูลค่ารวมตามเวลา: ใช้บันทึกกระเป๋าเป็นหลัก ถ้าไม่มีใช้ snapshot รายตัว */
+function seriesTotals(){
+  const es=sorted();
+  if(es.length) return es.map(e=>({date:e.date,total:totalOf(e)}));
+  return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)
+    .map(s=>({date:s.asof,total:snapTotal(s)}))
+    .filter(x=>x.total>0);
 }
 
 /* ══ พจนานุกรมชื่อ: กระเป๋า + รายตัวทุกตัว + ที่เรียนรู้ ══ */
@@ -399,27 +443,44 @@ function applyParsed(p){
   let storageFail=false;
   const d=today();
 
-  /* wallet entries (บันทึกรายวัน) */
-  if(p.fx!=null || Object.keys(p.wallet).length){
+  /* เรทรายวัน — เก็บลง fx diary เสมอ */
+  if(p.fx!=null){
+    const prevFx=fxPrevBefore(d);
+    fxmap[d]=p.fx;
+    if(!jsave(KEYFX,fxmap)) storageFail=true;
+    let ln="💱 เรทวันนี้ = "+p.fx+" ฿/USD";
+    if(prevFx!=null && Math.abs(prevFx-p.fx)>0.001){
+      const ch=((p.fx-prevFx)/prevFx*100);
+      ln+="  (ก่อนหน้า "+prevFx+" → บาท"+(p.fx>prevFx?"อ่อนลง":"แข็งขึ้น")+" "+Math.abs(ch).toFixed(2)+"%)";
+    }
+    parts.push(ln);
+  }
+
+  /* wallet entries (บันทึกรายวันของกระเป๋า) */
+  if(Object.keys(p.wallet).length){
     const es=sorted(), last=es[es.length-1];
     let entry=db.entries.find(x=>x.date===d);
     if(!entry){
-      entry={date:d, fx:p.fx!=null?p.fx:(last?last.fx:33), vals:last?{...last.vals}:{}};
+      entry={date:d, fx:fxOn(d), vals:last?{...last.vals}:{}};
       db.entries.push(entry);
-    }else if(p.fx!=null) entry.fx=p.fx;
+    }
+    if(p.fx!=null) entry.fx=p.fx;
     Object.assign(entry.vals,p.wallet);
     if(!jsave(KEY3,db)) storageFail=true;
     Object.keys(p.wallet).forEach(id=>{
       const a=accById(id);
       parts.push("💼 "+(a?a.name:id)+" = "+fmt(p.wallet[id])+(a&&a.cur==="USD"?" USD":" ฿"));
     });
-    if(p.fx!=null) parts.push("💱 FX = "+p.fx);
     const tot=totalOf(entry);
     const prev=sorted().filter(e=>e.date<d).pop();
     let line="\n🧺 รวมพอร์ต "+fmt(tot,0)+" ฿";
     if(prev){ const df=tot-totalOf(prev);
       line+="  ("+sign(df)+fmt(Math.abs(df),0)+" / "+sign(df)+Math.abs(df/totalOf(prev)*100).toFixed(2)+"% จาก "+prev.date+")"; }
     parts.push(line);
+  }else if(p.fx!=null){
+    /* มีแต่เรท: อัปเดต fx ของ entry วันนี้ถ้ามี */
+    const entry=db.entries.find(x=>x.date===d);
+    if(entry){ entry.fx=p.fx; if(!jsave(KEY3,db)) storageFail=true; }
   }
 
   /* holdings (รายตัว — เก็บเป็นประวัติ snapshot) */
@@ -430,6 +491,8 @@ function applyParsed(p){
       snap={asof:d, items:prevSnap?JSON.parse(JSON.stringify(prevSnap.items)):[]};
       holds.snaps.push(snap);
     }
+    const fxNew=fxOn(d);
+    let anyUsd=false;
     p.holds.forEach(h=>{
       const old=(prevSnap&&prevSnap.asof!==d)
         ? prevSnap.items.find(x=>x.name.toLowerCase()===h.name.toLowerCase())
@@ -439,8 +502,25 @@ function applyParsed(p){
       if(it){ it.val=h.val; if(h.grp)it.grp=h.grp; if(h.cur)it.cur=h.cur; }
       else snap.items.push({name:h.name,grp:h.grp||"other",cur:h.cur||"THB",val:h.val});
       const unit=(h.cur==="USD")?" USD":" ฿";
+      if(h.cur==="USD") anyUsd=true;
       let ln="🌸 "+h.name+" ("+ (GNAME[h.grp]||"") +") = "+fmt(h.val)+unit;
-      if(oldVal!=null && oldVal!==h.val){
+      if(h.cur==="USD") ln+="  ≈ "+fmt(h.val*fxNew,0)+" ฿";
+      if(oldVal!=null && prevSnap && prevSnap.asof!==d && h.cur==="USD"){
+        /* แยกให้เห็น: กำไรจากหุ้น vs จากค่าเงิน */
+        const fxOld=fxOn(prevSnap.asof);
+        const usdP=oldVal?(h.val-oldVal)/oldVal*100:0;
+        const thbOld=oldVal*fxOld, thbNew=h.val*fxNew;
+        const thbP=thbOld?(thbNew-thbOld)/thbOld*100:0;
+        if(Math.abs(fxNew-fxOld)>0.001){
+          ln+="\n   💵 ตัวหุ้น "+sign(usdP)+Math.abs(usdP).toFixed(2)+"%"
+            +" • เรท "+fxOld+"→"+fxNew
+            +" → คิดเป็นบาท "+sign(thbP)+Math.abs(thbP).toFixed(2)+"%";
+          if(usdP<0 && thbP>usdP) ln+=" (ค่าเงินช่วยพยุงไว้ 💪)";
+          else if(usdP>0 && thbP<usdP) ln+=" (โดนค่าเงินกินไปหน่อย)";
+        }else if(oldVal!==h.val){
+          ln+="  ("+sign(usdP)+Math.abs(usdP).toFixed(2)+"% จากครั้งก่อน)";
+        }
+      }else if(oldVal!=null && oldVal!==h.val){
         const df=h.val-oldVal;
         ln+="  ("+sign(df)+fmt(Math.abs(df))+" / "+sign(df)+Math.abs(df/oldVal*100).toFixed(2)+"% จากครั้งก่อน)";
       }else if(oldVal==null) ln+="  (รายการใหม่ 🎀)";
@@ -448,7 +528,9 @@ function applyParsed(p){
     });
     if(!jsave(KEY2,holds)) storageFail=true;
     const ht=holdingsTotal();
-    if(ht!=null) parts.push("\n💗 รวมรายตัว "+fmt(ht,0)+" ฿");
+    if(ht!=null) parts.push("\n💗 รวมรายตัว "+fmt(ht,0)+" ฿  (เรท "+fxNew+")");
+    if(anyUsd && fxmap[d]==null && p.fx==null)
+      parts.push("💡 เรทที่ใช้ ("+fxNew+") เป็นของวันก่อน — ถ้ามีเรทวันนี้พิมพ์ “fx 33.xx” ได้เลย");
   }
 
   if(!parts.length) return false;
@@ -462,6 +544,7 @@ function applyParsed(p){
 
 /* ══ ตอบคำถาม/ข้อความทั่วไป (ไม่มีตัวเลข) ══ */
 function smallTalk(text){
+  const es=sorted();
   if(/กราฟ|กราฟฟ|พลอต|plot|แนวโน้ม|เทรนด์/i.test(text)){
     bubble("กราฟอยู่แท็บ 📊 สรุปพอร์ต ข้างล่างค่ะ — มีเส้นมูลค่ารวม, อัตราโตรายวัน %, โดนัทสัดส่วน และรายตัวครบเลย 🌷","bot"); return;
   }
@@ -480,6 +563,24 @@ function summaryBubble(){
   const snap=latestSnap();
   if(!es.length && !snap){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ชื่อ+ตัวเลข หรือกด 📁 นำเข้าไฟล์ backup ก่อนนะ","bot"); return; }
   let m="📊 สรุปพอร์ต\n";
+  if(!es.length && snap){
+    /* โหมดจดรายตัวล้วน */
+    const sr=seriesTotals();
+    if(sr.length){
+      const last=sr[sr.length-1], prev=sr[sr.length-2], first=sr[0];
+      m+="💗 รวมรายตัว ("+last.date+"): "+fmt(last.total,0)+" ฿ (เรท "+fxOn(last.date)+")\n";
+      if(prev){ const df=last.total-prev.total;
+        m+="• เทียบครั้งก่อน ("+prev.date+"): "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(df/prev.total*100).toFixed(2)+"%)\n"; }
+      if(sr.length>1){ const d0=last.total-first.total;
+        m+="• ตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(d0/first.total*100).toFixed(2)+"%)\n"; }
+      const byG={}, fx=fxOn(snap.asof);
+      snap.items.forEach(h=>{ const k=normGrp(h.grp); byG[k]=(byG[k]||0)+holdThb(h,fx); });
+      const t=Object.values(byG).reduce((s,v)=>s+v,0);
+      GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/t*100).toFixed(1)+"%)\n"; });
+    }
+    m+="\nกราฟทั้งหมดอยู่แท็บ 📊 สรุปพอร์ต ล่างขวาเลยค่า";
+    bubble(m,"bot"); return;
+  }
   if(es.length){
     const last=es[es.length-1], first=es[0], prev=es[es.length-2];
     const tot=totalOf(last);
@@ -503,10 +604,10 @@ function summaryBubble(){
 }
 
 function greet(){
-  const es=sorted();
-  if(es.length||(latestSnap()&&latestSnap().items.length)){
-    const last=es[es.length-1];
-    bubble("สวัสดีค่า 🌸 "+(last?("พอร์ตล่าสุด ("+last.date+") รวม "+fmt(totalOf(last),0)+" ฿"):"มีข้อมูลรายตัวอยู่แล้ว")+"\nพิมพ์ชื่อ+ตัวเลขมาอัปเดตได้เลย หรือแนบรูปพอร์ตก็ได้","bot");
+  const sr=seriesTotals();
+  if(sr.length){
+    const last=sr[sr.length-1];
+    bubble("สวัสดีค่า 🌸 พอร์ตล่าสุด ("+last.date+") รวม "+fmt(last.total,0)+" ฿ (เรท "+lastFx()+")\nพิมพ์ชื่อ+ตัวเลขมาอัปเดตได้เลย หรือแนบรูปพอร์ตก็ได้","bot");
   }else{
     chipsBubble("สวัสดีค่า 🌸 ยังไม่มีข้อมูลในเครื่องนี้เลย\n\n• พิมพ์ชื่อ+ตัวเลขได้เลย เช่น “TLUS500-UH-X 6499.64” (ชื่ออะไรก็ได้ เดี๋ยวถามเองว่าเป็นหุ้น/กอง/ทอง แล้วจำไว้ตลอด)\n• หรือแนบรูปพอร์ต 📷 เดี๋ยวอ่านให้\n• ถ้ามีไฟล์ backup จากแอปหลัก กดปุ่มนี้เลย 👇",
       [{label:"📁 นำเข้าไฟล์ backup"}],
@@ -577,6 +678,7 @@ fileInput.addEventListener("change",async ev=>{
               else bubble("โอเคค่า ไม่บันทึกนะ พิมพ์เองหรือแตะตัวเลขด้านล่างได้เลย","bot"); });
       return;
     }
+    /* ไม่จับคู่ได้เลย → โชว์เลขให้แตะแบบเดิม */
     const nums=[...new Set((text.match(/\d[\d,]*\.\d\d/g)||[]).map(x=>x.replace(/,/g,"")))]
       .map(Number).filter(n=>n>0.1&&n<10000000).slice(0,14);
     if(!nums.length){ bubble("อ่านไม่เจอตัวเลขในรูปเลยค่า 🥺 ลองพิมพ์เองนะ","bot"); return; }
@@ -635,20 +737,19 @@ document.getElementById("q-export").addEventListener("click",()=>{
   bubble("ดาวน์โหลดไฟล์สำรองแล้วค่า 💾 เก็บไว้ดีๆ นะ","bot");
 });
 
-/* ══ top ══ */
+/* ══ top + celebrate ══ */
 function updateTop(){
-  const es=sorted();
+  const sr=seriesTotals();
   const tEl=document.getElementById("top-total"), dEl=document.getElementById("top-diff");
-  if(!es.length){ const ht=holdingsTotal();
-    tEl.textContent=ht!=null?fmt(ht,0)+" ฿":"—"; dEl.textContent=ht!=null?"รวมรายตัว":""; return; }
-  const last=es[es.length-1], prev=es[es.length-2];
-  tEl.textContent=fmt(totalOf(last),0)+" ฿";
-  if(prev){ const df=totalOf(last)-totalOf(prev);
+  if(!sr.length){ tEl.textContent="—"; dEl.textContent=""; return; }
+  const last=sr[sr.length-1], prev=sr[sr.length-2];
+  tEl.textContent=fmt(last.total,0)+" ฿";
+  if(prev){ const df=last.total-prev.total;
     dEl.textContent=sign(df)+fmt(Math.abs(df),0)+" จากครั้งก่อน"; }
   else dEl.textContent=last.date;
 }
 
-/* ══ dashboard ══ */
+/* ══ dashboard (เหมือนเดิม) ══ */
 function countUp(el,target){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches){
     el.textContent=fmt(target,0)+" ฿"; return; }
@@ -661,39 +762,37 @@ function countUp(el,target){
   requestAnimationFrame(step);
 }
 function renderDash(){
-  const es=sorted();
+  const sr=seriesTotals();
   const totalEl=document.getElementById("d-total");
-  if(!es.length){
-    const ht=holdingsTotal();
-    totalEl.textContent=ht!=null?fmt(ht,0)+" ฿":"—";
-    if(latestSnap()) drawHoldings({vals:{},fx:lastFx()});
-    return;
-  }
-  const last=es[es.length-1], prev=es[es.length-2], first=es[0];
-  const tot=totalOf(last);
-  countUp(totalEl,tot);
+  if(!sr.length){ totalEl.textContent="—"; return; }
+  const last=sr[sr.length-1], prev=sr[sr.length-2], first=sr[0];
+  countUp(totalEl,last.total);
   const day=document.getElementById("d-day"), since=document.getElementById("d-since");
   if(prev){
-    const df=tot-totalOf(prev), pc=df/totalOf(prev)*100;
+    const df=last.total-prev.total, pc=df/prev.total*100;
     day.className="pill "+cls(df);
     day.textContent="วันนี้ "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(pc).toFixed(2)+"%)";
   }else{ day.className="pill flat"; day.textContent="วันนี้ —"; }
-  if(es.length>1){
-    const d0=tot-totalOf(first), p0=d0/totalOf(first)*100;
+  if(sr.length>1){
+    const d0=last.total-first.total, p0=d0/first.total*100;
     since.className="pill "+cls(d0);
     since.textContent="ตั้งแต่เริ่ม "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
   }else{ since.className="pill flat"; since.textContent="ตั้งแต่เริ่ม —"; }
-  drawLine(es); drawGrowth(es); drawDonut(last); drawHoldings(last);
+  drawLine(sr); drawGrowth(sr);
+  const es=sorted();
+  const ctx=es.length?es[es.length-1]:{vals:{},fx:lastFx()};
+  drawDonut(ctx); drawHoldings(ctx);
 }
 
 const NS="http://www.w3.org/2000/svg";
 const el=(n,at)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);return e;};
 
 function drawLine(es){
+  /* es = [{date,total}] */
   const svg=document.getElementById("line"), tt=document.getElementById("line-tt");
   svg.textContent="";
   const W=460,H=210,L=58,R=14,T=12,B=26;
-  const ts=es.map(totalOf);
+  const ts=es.map(s=>s.total);
   let lo=Math.min(...ts),hi=Math.max(...ts);
   if(lo===hi){lo-=100;hi+=100;}
   const pad=(hi-lo)*.15; lo-=pad; hi+=pad;
@@ -713,7 +812,7 @@ function drawLine(es){
     const tx=el("text",{x:X(i),y:H-8,"text-anchor":"middle","font-size":10,fill:"var(--muted)"});
     tx.textContent=es[i].date.slice(5); svg.appendChild(tx);
   });
-  const pts=es.map((e,i)=>[X(i),Y(totalOf(e))]);
+  const pts=es.map((e,i)=>[X(i),Y(e.total)]);
   if(es.length>1){
     svg.appendChild(el("path",{d:"M"+pts.map(p=>p.join(" ")).join(" L ")+
       ` L ${pts[pts.length-1][0]} ${H-B} L ${pts[0][0]} ${H-B} Z`,fill:"var(--accent)",opacity:.09}));
@@ -757,7 +856,7 @@ function drawGrowth(es){
   const W=460,H=150,L=44,R=10,T=12,B=24;
   const pcs=[];
   for(let i=1;i<es.length;i++){
-    const a=totalOf(es[i-1]), b=totalOf(es[i]);
+    const a=es[i-1].total, b=es[i].total;
     pcs.push({date:es[i].date, pc:a?(b-a)/a*100:0});
   }
   let mx=Math.max(.3,...pcs.map(p=>Math.abs(p.pc)));
@@ -796,6 +895,13 @@ function drawDonut(last){
     const a=accById(id), k=a?a.grp:"other";
     byG[k]=(byG[k]||0)+thbVal(last,id);
   });
+  /* ไม่มีบันทึกกระเป๋า → ใช้สัดส่วนจากรายตัวแทน */
+  if(!Object.values(byG).reduce((s,v)=>s+v,0)){
+    const s=latestSnap();
+    if(s){ const fx=fxOn(s.asof);
+      s.items.forEach(h=>{ const k=normGrp(h.grp);
+        byG[k]=(byG[k]||0)+holdThb(h,fx); }); }
+  }
   const t=Object.values(byG).reduce((s,v)=>s+v,0);
   if(!t) return;
   const parts=GROUPS.filter(([k])=>byG[k]>0).map(([k,n])=>({k,n,v:byG[k]}));
@@ -821,8 +927,8 @@ function drawHoldings(last){
   const box=document.getElementById("holdings"), empty=document.getElementById("hold-empty");
   box.textContent="";
   const snap=latestSnap();
-  document.getElementById("h-asof").textContent=snap?"("+snap.asof+")":"";
-  const fx=last.fx||lastFx();
+  document.getElementById("h-asof").textContent=snap?"("+snap.asof+" • เรท "+fxOn(snap.asof)+")":"";
+  const fx=snap?fxOn(snap.asof):lastFx();
   const rows=snap?snap.items.map(h=>({name:h.name,grp:normGrp(h.grp),
     thb:h.cur==="USD"?h.val*fx:h.val})):[];
   const cash=cashOf(last);
