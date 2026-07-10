@@ -7,7 +7,7 @@ const TIMELINE = [
   { date: new Date(2025, 10, 2), emoji: "💋", title: "จูบแรกของเรา", desc: "2 พฤศจิกายน 2568" },
   { date: new Date(2025, 11, 20), emoji: "⭐", title: "Star Day", desc: "20 ธันวาคม 2568" },
   { date: new Date(2026, 2, 1), emoji: "💗", title: "วันครบรอบของเรา", desc: "1 มีนาคม 2569" },
-  { date: new Date(2026, 3, 18), emoji: "🐰", title: "ย้ายมาอยู่ด้วยกัน", desc: "18 เมษายน 2569" },
+  { date: new Date(2026, 3, 18), emoji: "🏠", title: "บิบี๋น้อยมาบ้านผมครั้งแรก", desc: "18 เมษายน 2569" },
 ];
 
 const BIRTHDAYS = [
