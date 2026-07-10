@@ -11,7 +11,7 @@
     --border:rgba(224,68,124,.15); --grid:#f3dce6; --baseline:#e6c3d2;
     --accent:#e0447c; --accent-deep:#c22e66;
     --us:#2a78d6; --fund:#1baf7a; --tax:#eda100; --cash:#008300;
-    --gold:#4a3aa7; --etf:#e34948; --other:#e87ba4;
+    --gold:#4a3aa7; --etf:#e34948; --pvd:#e87ba4; --other:#8f7a86;
     --up:#006300; --down:#d03b3b;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -114,6 +114,49 @@
   .fx{position:fixed;font-size:22px;pointer-events:none;z-index:99;animation:rise 1.6s ease-out forwards}
   @keyframes rise{to{transform:translateY(-130px) rotate(30deg);opacity:0}}
   @media (prefers-reduced-motion: reduce){ .fx{display:none} }
+
+  /* ── period chips (การเติบโต) ── */
+  .pchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .pchips button{background:var(--surface3);border:1px solid var(--border);color:var(--ink2);
+      padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+  .pchips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .grow-line{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .grow-line .gv{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .bd-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:13.5px;
+      border-bottom:1px dashed var(--grid)}
+  .bd-row:last-child{border-bottom:none}
+  .bd-row .bl{color:var(--ink2)}
+  .bd-row .bv{font-variant-numeric:tabular-nums;font-weight:700}
+  .bv.up{color:var(--up)} .bv.down{color:var(--down)}
+
+  /* ── bottom sheet (แตะรายการใน dashboard) ── */
+  .sheet-bg{position:fixed;inset:0;background:rgba(59,31,49,.45);z-index:50;display:none}
+  .sheet-bg.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);z-index:51;
+      border-radius:22px 22px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom,0px) + 18px);
+      max-width:480px;margin:0 auto;box-shadow:0 -6px 30px rgba(224,68,124,.25);display:none}
+  .sheet.on{display:block}
+  .sheet h3{font-size:16px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+  .sheet .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;font-variant-numeric:tabular-nums}
+  .sheet .act{display:flex;flex-direction:column;gap:8px}
+  .sheet .act button{background:var(--surface3);border:1px solid var(--border);border-radius:14px;
+      padding:12px 14px;font-size:14.5px;font-family:inherit;color:var(--ink);cursor:pointer;
+      text-align:left;font-weight:600}
+  .sheet .act button:active{background:var(--surface2)}
+  .sheet .act button.danger{color:var(--down)}
+  .sheet .act button.armed{background:#fde7e7;border-color:var(--down);color:var(--down)}
+  .sheet .editrow{display:flex;gap:8px;margin-top:4px}
+  .sheet .editrow input{flex:1;border:1px solid var(--border);border-radius:12px;padding:11px 14px;
+      font-size:16px;font-family:inherit;background:var(--surface3);color:var(--ink)}
+  .sheet .editrow input:focus{outline:none;border-color:var(--accent)}
+  .sheet .editrow button{background:var(--accent);border:none;color:#fff;border-radius:12px;
+      padding:0 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .hist-list{max-height:180px;overflow-y:auto;margin-top:8px}
+  .hist-list .hl{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;
+      font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--grid)}
+  .hist-list .hl span:first-child{color:var(--muted)}
+  .hrow{cursor:pointer}
+  .hrow:active{background:var(--surface3)}
 </style>
 </head>
 <body>
@@ -128,6 +171,7 @@
     <div class="inner">
       <div id="msgs"></div>
       <div class="quick">
+        <button data-q="อัปเดต">✏️ อัปเดตพอร์ต</button>
         <button data-q="สรุป">📊 สรุป</button>
         <button id="q-cam">📷 อ่านจากรูป</button>
         <button id="q-import">📁 นำเข้าไฟล์</button>
@@ -135,7 +179,7 @@
       </div>
       <div class="inputrow">
         <button class="att" id="att" title="แนบรูป">📷</button>
-        <textarea id="inp" rows="1" placeholder="พิมพ์ชื่อ + ตัวเลข เช่น TLUS500 6499.64"></textarea>
+        <textarea id="inp" rows="1" placeholder="เช่น TSLA 35.10 หรือพิมพ์ “อัปเดต”"></textarea>
         <button class="send" id="send" title="ส่ง">➤</button>
       </div>
       <input type="file" id="file" accept="image/*" style="display:none">
@@ -152,6 +196,24 @@
           <span class="pill flat" id="d-day">วันนี้ —</span>
           <span class="pill flat" id="d-since">ตั้งแต่เริ่ม —</span>
         </div>
+      </div>
+
+      <div class="card">
+        <h2>💖 การเติบโตของพอร์ต</h2>
+        <div class="pchips" id="pchips">
+          <button data-p="1" class="on">ครั้งก่อน</button>
+          <button data-p="7">7 วัน</button>
+          <button data-p="30">30 วัน</button>
+          <button data-p="ytd">YTD</button>
+          <button data-p="all">ทั้งหมด</button>
+        </div>
+        <div class="grow-line" id="grow-line"><span class="gv">—</span></div>
+        <div class="empty" id="grow-empty" style="display:none">ยังไม่มีข้อมูลช่วงนี้</div>
+      </div>
+
+      <div class="card" id="bd-card" style="display:none">
+        <h2>🧁 กำไร/ขาดทุนล่าสุดมาจากไหน</h2>
+        <div id="bd-rows"></div>
       </div>
 
       <div class="card">
@@ -190,14 +252,21 @@
   <button data-v="dash"><span class="ic">📊</span>สรุปพอร์ต</button>
 </div>
 
+<div class="sheet-bg" id="sheet-bg"></div>
+<div class="sheet" id="sheet">
+  <h3 id="sh-name"></h3>
+  <div class="sub" id="sh-sub"></div>
+  <div class="act" id="sh-act"></div>
+</div>
+
 <script>
 "use strict";
 /* ══ shared storage — คีย์เดียวกับแอปหลัก ══ */
 const KEY3="emil_portfolio_v2", KEY2="emil_portfolio_holdings_v1", KEYL="emil_moni_learned_v1";
 const SLOT={us:"var(--us)",fund:"var(--fund)",tax:"var(--tax)",cash:"var(--cash)",
-            gold:"var(--gold)",etf:"var(--etf)",other:"var(--other)"};
-const GROUPS=[["us","หุ้น US"],["fund","กองทุนรวม"],["tax","ลดหย่อนภาษี"],["cash","เงินสด"],
-              ["gold","ทองคำ"],["etf","ETF"],["other","อื่นๆ"]];
+            gold:"var(--gold)",etf:"var(--etf)",pvd:"var(--pvd)",other:"var(--other)"};
+const GROUPS=[["us","หุ้น US"],["fund","กองทุนรวม"],["tax","ลดหย่อนภาษี"],["pvd","กองทุนสำรองเลี้ยงชีพ"],
+              ["cash","เงินสด"],["gold","ทองคำ"],["etf","ETF"],["other","อื่นๆ"]];
 const GNAME=Object.fromEntries(GROUPS);
 const DEF_ACCOUNTS=[
   {id:"dime",  name:"Dime! หุ้น US",          grp:"us",   cur:"USD", off:false},
@@ -241,9 +310,6 @@ let fxmap=jload(KEYFX)||{};    /* เรทรายวัน: {"2026-07-08":33.
 const fmt=(n,d=2)=>Number(n).toLocaleString("th-TH",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sorted=()=>db.entries.slice().sort((a,b)=>a.date<b.date?-1:1);
 const accById=id=>db.accounts.find(a=>a.id===id);
-function thbVal(e,id){ const v=e.vals[id]; if(v==null)return 0;
-  const a=accById(id); return (a&&a.cur==="USD")?v*e.fx:v; }
-const totalOf=e=>Object.keys(e.vals).reduce((s,id)=>s+thbVal(e,id),0);
 const grpColor=k=>SLOT[k]||SLOT.other;
 const sign=n=>n>=0?"+":"−";
 const cls=n=>n>0.005?"up":n<-0.005?"down":"flat";
@@ -263,32 +329,89 @@ function fxPrevBefore(dateStr){
     bestDate=e.date; best=e.fx; } });
   return best;
 }
-const lastFx=()=>fxOn(today());
 function latestSnap(){
   if(!holds.snaps.length) return null;
   return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)[holds.snaps.length-1];
 }
 function normGrp(g){ return g==="dime"?"us":g==="gen"?"fund":g; }
-function holdThb(h,fx){ return h.cur==="USD"?h.val*fx:h.val; }
-function cashOf(e){ if(!e) return 0;
-  return Object.keys(e.vals).reduce((s,id)=>{const a=accById(id);
-    return s+((a&&a.grp==="cash")?thbVal(e,id):0);},0); }
-function snapTotal(s){
-  const fx=fxOn(s.asof);
-  return s.items.reduce((t,h)=>t+holdThb(h,fx),0);
+/* ═══════════════════════════════════════════════════════════════
+   แกนกลางเดียวของทั้งแอป: calculatePortfolioSnapshot(date)
+   ทุกส่วน (hero, กราฟเส้น, พาย, รายตัว, สรุปในแชท, การเติบโต)
+   อ่านจากฟังก์ชันนี้เท่านั้น — ห้ามคำนวณเอง จะได้ไม่มีเลขไม่ตรงกัน
+   ─ เงินสดเป็นสินทรัพย์ประเภทหนึ่ง รวมอยู่ในมูลค่าพอร์ตเสมอ
+   ─ ใช้เรทของ "วันนั้น" (fx diary) ไม่ใช่เรทล่าสุดตัวเดียว
+   ─ กันนับซ้ำ: ถ้ากลุ่มไหนมีรายตัวแล้ว ยอดกระเป๋ารวมของกลุ่มนั้นไม่ถูกนับอีก
+   ═══════════════════════════════════════════════════════════════ */
+function calculatePortfolioSnapshot(dateStr){
+  const fx=fxOn(dateStr);
+  const es=sorted().filter(e=>e.date<=dateStr);
+  const entry=es.length?es[es.length-1]:null;
+  const ss=holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1).filter(s=>s.asof<=dateStr);
+  const snap=ss.length?ss[ss.length-1]:null;
+  const items=[];             /* {name,grp,cur,val,thb,src,id?} */
+  const snapGroups=new Set(); /* กลุ่มที่มีรายตัวแล้ว */
+  if(snap) snap.items.forEach(h=>{
+    const g=normGrp(h.grp);
+    snapGroups.add(g);
+    items.push({name:h.name,grp:g,cur:h.cur||"THB",val:h.val,
+                thb:h.cur==="USD"?h.val*fx:h.val,src:"hold"});
+  });
+  if(entry) Object.keys(entry.vals).forEach(id=>{
+    const a=accById(id); if(!a||a.off) return;
+    const v=entry.vals[id]; if(v==null) return;
+    if(a.grp!=="cash" && snapGroups.has(a.grp)) return;  /* กันนับซ้ำกับรายตัว */
+    items.push({name:a.name,grp:a.grp,cur:a.cur,val:v,
+                thb:a.cur==="USD"?v*fx:v,src:"wallet",id});
+  });
+  const byGroup={}; let total=0, cash=0;
+  items.forEach(it=>{
+    byGroup[it.grp]=(byGroup[it.grp]||0)+it.thb;
+    total+=it.thb;
+    if(it.grp==="cash") cash+=it.thb;
+  });
+  return {date:dateStr, fx, total, cash, items, byGroup};
 }
-function holdingsTotal(){
-  const s=latestSnap(); if(!s) return null;
-  const es=sorted();
-  return snapTotal(s)+cashOf(es[es.length-1]);
+function allDates(){
+  const s=new Set();
+  db.entries.forEach(e=>s.add(e.date));
+  holds.snaps.forEach(x=>{ if(x.asof) s.add(x.asof); });
+  return [...s].sort();
 }
-/* อนุกรมมูลค่ารวมตามเวลา: ใช้บันทึกกระเป๋าเป็นหลัก ถ้าไม่มีใช้ snapshot รายตัว */
-function seriesTotals(){
-  const es=sorted();
-  if(es.length) return es.map(e=>({date:e.date,total:totalOf(e)}));
-  return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)
-    .map(s=>({date:s.asof,total:snapTotal(s)}))
-    .filter(x=>x.total>0);
+/* อนุกรม snapshot ทุกวันที่มีข้อมูล — ใช้วาดกราฟเส้น/โต */
+function series(){
+  return allDates().map(calculatePortfolioSnapshot).filter(s=>s.total>0);
+}
+/* แยกที่มาของกำไร s0→s1: ราคาสินทรัพย์ / ค่าเงิน / เงินสด / เงินเข้า-ออก */
+function decompose(s0,s1){
+  let price=0, fxEff=0, flows=0;
+  const cashEff=s1.cash-s0.cash;
+  const m0={};
+  s0.items.forEach(it=>{ if(it.grp!=="cash") m0[it.name.toLowerCase()]=it; });
+  const seen=new Set();
+  s1.items.forEach(it=>{
+    if(it.grp==="cash") return;
+    const k=it.name.toLowerCase(), o=m0[k];
+    if(o){ seen.add(k);
+      if(it.cur==="USD"){ price+=(it.val-o.val)*s0.fx; fxEff+=it.val*(s1.fx-s0.fx); }
+      else price+=it.val-o.val;
+    }else flows+=it.thb;   /* รายการใหม่ */
+  });
+  Object.keys(m0).forEach(k=>{ if(!seen.has(k)) flows-=m0[k].thb; }); /* รายการที่หายไป */
+  return {price,fxEff,cashEff,flows,base:s0.total};
+}
+/* ── Snapshot log รายวัน: บันทึกประวัติพอร์ตทุกครั้งที่มีการเปลี่ยนแปลง ── */
+const KEYS="emil_moni_snaplog_v1";
+function logSnapshot(){
+  const s=calculatePortfolioSnapshot(today());
+  if(!s.total) return;
+  let log=jload(KEYS)||[];
+  log=log.filter(x=>x.date!==s.date);
+  log.push({date:s.date,total:Math.round(s.total*100)/100,cash:Math.round(s.cash*100)/100,
+            fx:s.fx,byGroup:s.byGroup,
+            items:s.items.map(it=>({name:it.name,grp:it.grp,cur:it.cur,val:it.val}))});
+  log.sort((a,b)=>a.date<b.date?-1:1);
+  if(log.length>500) log=log.slice(-500);
+  jsave(KEYS,log);
 }
 
 /* ══ พจนานุกรมชื่อ: กระเป๋า + รายตัวทุกตัว + ที่เรียนรู้ ══ */
@@ -410,6 +533,39 @@ function chipsBubble(text,options,onPick){
 }
 function scrollBottom(){ const v=document.getElementById("view-chat"); v.scrollTop=v.scrollHeight; }
 
+/* ══ โหมดแก้ค่า: รอเลือกตัว / รอตัวเลขใหม่ ══ */
+let pendEdit=null;   /* {target:item} รอผู้ใช้พิมพ์ค่าใหม่ */
+let pendPick=null;   /* [items] รอผู้ใช้พิมพ์หมายเลขจากลิสต์ */
+function applyValueTo(t,val){
+  if(t.src==="wallet") applyParsed({wallet:{[t.id]:val},holds:[],unknown:[],fx:null});
+  else applyParsed({wallet:{},holds:[{name:t.name,grp:t.grp,cur:t.cur,val}],unknown:[],fx:null});
+}
+function askNewValue(it){
+  pendEdit={target:it};
+  bubble("💕 "+it.name+" ตอนนี้ = "+fmt(it.val)+(it.cur==="USD"?" USD":" ฿")+"\nพิมพ์ค่าใหม่มาได้เลยค่ะ (ตัวเลขอย่างเดียว)","bot");
+}
+function showUpdateList(){
+  const s=calculatePortfolioSnapshot(today());
+  if(!s.items.length){
+    bubble("ยังไม่มีรายการในพอร์ตเลยค่า ✍️ พิมพ์ชื่อ+ตัวเลขเพื่อเพิ่มก่อนนะ เช่น “TSLA 35.10”","bot");
+    return;
+  }
+  const items=s.items.slice().sort((a,b)=>b.thb-a.thb);
+  pendPick=items;
+  chipsBubble("✏️ อยากแก้ตัวไหนคะ? แตะเลือกเลย (หรือพิมพ์หมายเลขก็ได้)\n\n"+
+    items.map((it,i)=>(i+1)+". "+it.name+"  "+fmt(it.val)+(it.cur==="USD"?" USD":" ฿")).join("\n"),
+    items.map((it,i)=>({label:(i+1)+". "+it.name,it})),
+    op=>{ pendPick=null; askNewValue(op.it); });
+}
+function startEdit(q){
+  const s=calculatePortfolioSnapshot(today());
+  const ql=q.toLowerCase();
+  const it=s.items.find(x=>x.name.toLowerCase()===ql)
+        ||s.items.find(x=>x.name.toLowerCase().includes(ql));
+  if(it) askNewValue(it);
+  else bubble("ไม่เจอ “"+q+"” ในพอร์ตเลยค่า 🥺 พิมพ์ “อัปเดต” เพื่อดูรายการทั้งหมดได้นะ","bot");
+}
+
 /* ══ คิวถามชื่อใหม่ ══ */
 let pendQ=[];
 function queueUnknowns(list){ pendQ.push(...list); askNext(); }
@@ -471,12 +627,6 @@ function applyParsed(p){
       const a=accById(id);
       parts.push("💼 "+(a?a.name:id)+" = "+fmt(p.wallet[id])+(a&&a.cur==="USD"?" USD":" ฿"));
     });
-    const tot=totalOf(entry);
-    const prev=sorted().filter(e=>e.date<d).pop();
-    let line="\n🧺 รวมพอร์ต "+fmt(tot,0)+" ฿";
-    if(prev){ const df=tot-totalOf(prev);
-      line+="  ("+sign(df)+fmt(Math.abs(df),0)+" / "+sign(df)+Math.abs(df/totalOf(prev)*100).toFixed(2)+"% จาก "+prev.date+")"; }
-    parts.push(line);
   }else if(p.fx!=null){
     /* มีแต่เรท: อัปเดต fx ของ entry วันนี้ถ้ามี */
     const entry=db.entries.find(x=>x.date===d);
@@ -527,18 +677,41 @@ function applyParsed(p){
       parts.push(ln);
     });
     if(!jsave(KEY2,holds)) storageFail=true;
-    const ht=holdingsTotal();
-    if(ht!=null) parts.push("\n💗 รวมรายตัว "+fmt(ht,0)+" ฿  (เรท "+fxNew+")");
     if(anyUsd && fxmap[d]==null && p.fx==null)
       parts.push("💡 เรทที่ใช้ ("+fxNew+") เป็นของวันก่อน — ถ้ามีเรทวันนี้พิมพ์ “fx 33.xx” ได้เลย");
   }
 
   if(!parts.length) return false;
+
+  /* ── สรุปท้ายข้อความ: ตัวเลขเดียวกับ dashboard เป๊ะ (มาจาก snapshot กลาง) ── */
+  const sr=series();
+  const cur=sr.length?sr[sr.length-1]:null;
+  if(cur){
+    let line="\n🧺 รวมพอร์ต "+fmt(cur.total,0)+" ฿";
+    if(cur.cash>0) line+="  (ในนั้นเงินสด "+fmt(cur.cash,0)+" ฿)";
+    const prev=sr.length>1?sr[sr.length-2]:null;
+    if(prev){
+      const df=cur.total-prev.total, pc=df/prev.total*100;
+      line+="\n"+(df>=0?"▲":"▼")+" "+sign(df)+fmt(Math.abs(df),0)+" ฿ ("+sign(df)+Math.abs(pc).toFixed(2)+"%) จาก "+prev.date;
+      const dc=decompose(prev,cur);
+      const pcs=v=>sign(v)+Math.abs(v/prev.total*100).toFixed(2)+"%";
+      const bits=[];
+      if(Math.abs(dc.price)>=0.005)   bits.push("📈 ราคาสินทรัพย์ "+pcs(dc.price));
+      if(Math.abs(dc.fxEff)>=0.005)   bits.push("💵 ค่าเงิน "+pcs(dc.fxEff));
+      if(Math.abs(dc.cashEff)>=0.005) bits.push("💰 เงินสด "+pcs(dc.cashEff));
+      if(Math.abs(dc.flows)>=0.005)   bits.push("🎀 เพิ่ม/ถอนรายการ "+pcs(dc.flows));
+      if(bits.length) line+="\n   มาจาก: "+bits.join(" • ");
+    }
+    parts.push(line);
+  }
+  logSnapshot();
+
   let msg="จดให้แล้วค่า ✅ ("+d+")\n"+parts.join("\n");
   msg+="\n\nดูกราฟได้ที่แท็บ 📊 สรุปพอร์ต ด้านล่างเลย";
   if(storageFail) msg+="\n⚠️ เบราว์เซอร์นี้บันทึกถาวรไม่ได้ ข้อมูลจะหายเมื่อปิด";
   bubble(msg,"bot");
   updateTop();
+  if(document.getElementById("view-dash").classList.contains("on")) renderDash();
   return true;
 }
 
@@ -559,55 +732,38 @@ function smallTalk(text){
 }
 
 function summaryBubble(){
-  const es=sorted();
-  const snap=latestSnap();
-  if(!es.length && !snap){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ชื่อ+ตัวเลข หรือกด 📁 นำเข้าไฟล์ backup ก่อนนะ","bot"); return; }
-  let m="📊 สรุปพอร์ต\n";
-  if(!es.length && snap){
-    /* โหมดจดรายตัวล้วน */
-    const sr=seriesTotals();
-    if(sr.length){
-      const last=sr[sr.length-1], prev=sr[sr.length-2], first=sr[0];
-      m+="💗 รวมรายตัว ("+last.date+"): "+fmt(last.total,0)+" ฿ (เรท "+fxOn(last.date)+")\n";
-      if(prev){ const df=last.total-prev.total;
-        m+="• เทียบครั้งก่อน ("+prev.date+"): "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(df/prev.total*100).toFixed(2)+"%)\n"; }
-      if(sr.length>1){ const d0=last.total-first.total;
-        m+="• ตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(d0/first.total*100).toFixed(2)+"%)\n"; }
-      const byG={}, fx=fxOn(snap.asof);
-      snap.items.forEach(h=>{ const k=normGrp(h.grp); byG[k]=(byG[k]||0)+holdThb(h,fx); });
-      const t=Object.values(byG).reduce((s,v)=>s+v,0);
-      GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/t*100).toFixed(1)+"%)\n"; });
-    }
-    m+="\nกราฟทั้งหมดอยู่แท็บ 📊 สรุปพอร์ต ล่างขวาเลยค่า";
-    bubble(m,"bot"); return;
+  const sr=series();
+  if(!sr.length){ bubble("ยังไม่มีข้อมูลเลยค่า ✍️ พิมพ์ชื่อ+ตัวเลข หรือกด 📁 นำเข้าไฟล์ backup ก่อนนะ","bot"); return; }
+  const last=sr[sr.length-1], prev=sr.length>1?sr[sr.length-2]:null, first=sr[0];
+  let m="📊 สรุปพอร์ต ("+last.date+")\n";
+  m+="🧺 รวม "+fmt(last.total,0)+" ฿  (เรท "+last.fx+")\n";
+  if(prev){
+    const df=last.total-prev.total;
+    m+=(df>=0?"▲":"▼")+" "+sign(df)+fmt(Math.abs(df),0)+" ฿ ("+sign(df)+Math.abs(df/prev.total*100).toFixed(2)+"%) จาก "+prev.date+"\n";
+    const dc=decompose(prev,last);
+    const pcs=v=>sign(v)+Math.abs(v/prev.total*100).toFixed(2)+"%";
+    const bits=[];
+    if(Math.abs(dc.price)>=0.005)   bits.push("📈 ราคา "+pcs(dc.price));
+    if(Math.abs(dc.fxEff)>=0.005)   bits.push("💵 ค่าเงิน "+pcs(dc.fxEff));
+    if(Math.abs(dc.cashEff)>=0.005) bits.push("💰 เงินสด "+pcs(dc.cashEff));
+    if(Math.abs(dc.flows)>=0.005)   bits.push("🎀 เพิ่ม/ถอน "+pcs(dc.flows));
+    if(bits.length) m+="   มาจาก: "+bits.join(" • ")+"\n";
   }
-  if(es.length){
-    const last=es[es.length-1], first=es[0], prev=es[es.length-2];
-    const tot=totalOf(last);
-    m+="🧺 รวมพอร์ต ("+last.date+"): "+fmt(tot,0)+" ฿\n";
-    if(prev){ const df=tot-totalOf(prev);
-      m+="• เทียบครั้งก่อน ("+prev.date+"): "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(df/totalOf(prev)*100).toFixed(2)+"%)\n"; }
-    if(es.length>1){ const d0=tot-totalOf(first);
-      m+="• ตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(d0/totalOf(first)*100).toFixed(2)+"%)\n"; }
-    const byG={};
-    Object.keys(last.vals).forEach(id=>{const a=accById(id);
-      const k=a?a.grp:"other"; byG[k]=(byG[k]||0)+thbVal(last,id);});
-    GROUPS.forEach(([k,n])=>{ if(byG[k]) m+="• "+n+": "+fmt(byG[k],0)+" ฿ ("+(byG[k]/totalOf(last)*100).toFixed(1)+"%)\n"; });
+  if(sr.length>1){
+    const d0=last.total-first.total;
+    m+="• ตั้งแต่เริ่ม ("+first.date+"): "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(d0/first.total*100).toFixed(2)+"%)\n";
   }
-  if(snap && snap.items.length){
-    m+="\n💗 รายตัวล่าสุด ("+snap.asof+"): "+snap.items.length+" รายการ";
-    const ht=holdingsTotal();
-    if(ht!=null) m+=" รวม "+fmt(ht,0)+" ฿";
-  }
-  m+="\n\nกราฟทั้งหมดอยู่แท็บ 📊 สรุปพอร์ต ล่างขวาเลยค่า";
+  GROUPS.forEach(([k,n])=>{ if(last.byGroup[k])
+    m+="• "+n+": "+fmt(last.byGroup[k],0)+" ฿ ("+(last.byGroup[k]/last.total*100).toFixed(1)+"%)\n"; });
+  m+="\nพิมพ์ “อัปเดต” เพื่อแก้ราคาทีละตัว หรือดูกราฟที่แท็บ 📊 ล่างขวาเลยค่า";
   bubble(m,"bot");
 }
 
 function greet(){
-  const sr=seriesTotals();
+  const sr=series();
   if(sr.length){
     const last=sr[sr.length-1];
-    bubble("สวัสดีค่า 🌸 พอร์ตล่าสุด ("+last.date+") รวม "+fmt(last.total,0)+" ฿ (เรท "+lastFx()+")\nพิมพ์ชื่อ+ตัวเลขมาอัปเดตได้เลย หรือแนบรูปพอร์ตก็ได้","bot");
+    bubble("สวัสดีค่า 🌸 พอร์ตล่าสุด ("+last.date+") รวม "+fmt(last.total,0)+" ฿ (เรท "+last.fx+")\nพิมพ์ชื่อ+ตัวเลขมาอัปเดต หรือพิมพ์ “อัปเดต” เพื่อแก้จากลิสต์ได้เลย","bot");
   }else{
     chipsBubble("สวัสดีค่า 🌸 ยังไม่มีข้อมูลในเครื่องนี้เลย\n\n• พิมพ์ชื่อ+ตัวเลขได้เลย เช่น “TLUS500-UH-X 6499.64” (ชื่ออะไรก็ได้ เดี๋ยวถามเองว่าเป็นหุ้น/กอง/ทอง แล้วจำไว้ตลอด)\n• หรือแนบรูปพอร์ต 📷 เดี๋ยวอ่านให้\n• ถ้ามีไฟล์ backup จากแอปหลัก กดปุ่มนี้เลย 👇",
       [{label:"📁 นำเข้าไฟล์ backup"}],
@@ -623,9 +779,29 @@ function handleSend(){
   route(text);
 }
 function route(text){
+  const t0=text.trim().replace(/,/g,"");
+  /* รอเลือกหมายเลขจากลิสต์อัปเดต */
+  if(pendPick){
+    if(/^\d{1,2}$/.test(t0)){
+      const it=pendPick[Number(t0)-1];
+      if(it){ pendPick=null; askNewValue(it); return; }
+    }
+    pendPick=null;   /* พิมพ์อย่างอื่น = ออกจากลิสต์ */
+  }
+  /* รอค่าตัวเลขใหม่ของตัวที่เลือกไว้ */
+  if(pendEdit){
+    if(/^\d+(\.\d+)?$/.test(t0)){
+      const tg=pendEdit.target; pendEdit=null;
+      applyValueTo(tg,Number(t0)); return;
+    }
+    pendEdit=null;   /* พิมพ์อย่างอื่น = ยกเลิกโหมดแก้ */
+  }
+  if(/^(update|อัปเดต|อัพเดต|อัพเดท)$/i.test(text.trim())){ showUpdateList(); return; }
+  const em=text.trim().match(/^(?:edit|แก้ไข|แก้)\s+(.+)$/i);
+  if(em && !/\d/.test(em[1])){ startEdit(em[1].trim()); return; }
   if(/^สรุป/.test(text)){ summaryBubble(); return; }
   if(/^(ตัวอย่าง|ช่วย|help|วิธี)/i.test(text)){
-    bubble("พิมพ์สบายๆ ได้เลยค่า ✍️ ชื่อ + ตัวเลข เช่น\n\nTLUS500-UH-X 6499.64\nTSLA 36.70\nกองทุนทั่วไป 13788.31\nทองแท่ง 16350\ndime 135.17 fx 33.28\n\n• หลายบรรทัดในข้อความเดียวได้\n• ชื่อใหม่ที่ไม่รู้จัก เดี๋ยวถามว่าเป็นหุ้น/กอง/ทอง แล้วจำไว้เลย\n• แนบรูป 📷 เดี๋ยวจับคู่ชื่อ-ตัวเลขให้อัตโนมัติ","bot");
+    bubble("พิมพ์สบายๆ ได้เลยค่า ✍️ ชื่อ + ตัวเลข เช่น\n\nTLUS500-UH-X 6499.64\nTSLA 36.70\nกองทุนทั่วไป 13788.31\nทองแท่ง 16350\ndime 135.17 fx 33.28\n\n• หลายบรรทัดในข้อความเดียวได้\n• พิมพ์ “อัปเดต” → เลือกตัวจากลิสต์แล้วใส่ค่าใหม่ ไม่ต้องพิมพ์ชื่อเอง\n• หรือ “แก้ TSLA” / “TSLA = 35.1” ก็ได้\n• ชื่อใหม่ที่ไม่รู้จัก เดี๋ยวถามว่าเป็นหุ้น/กอง/ทอง/PVD แล้วจำไว้เลย\n• แนบรูป 📷 เดี๋ยวจับคู่ชื่อ-ตัวเลขให้อัตโนมัติ","bot");
     return;
   }
   const p=parseFree(text,false);
@@ -707,10 +883,13 @@ document.getElementById("jfile").addEventListener("change",ev=>{
   rd.onload=()=>{
     try{
       const d=JSON.parse(rd.result);
-      if(d && (d.v===2||d.v===3) && Array.isArray(d.accounts) && Array.isArray(d.entries)){
+      if(d && (d.v===2||d.v===3||d.v===4) && Array.isArray(d.accounts) && Array.isArray(d.entries)){
         db={accounts:d.accounts,entries:d.entries}; jsave(KEY3,db);
         if(d.holdings){ holds=d.holdings.snaps?d.holdings:
           {snaps:[{asof:d.holdings.asof||"",items:d.holdings.items||[]}]}; jsave(KEY2,holds); }
+        if(d.fx && typeof d.fx==="object"){ fxmap=d.fx; jsave(KEYFX,fxmap); }
+        if(Array.isArray(d.snaplog)) jsave(KEYS,d.snaplog);
+        if(d.learned && typeof d.learned==="object"){ learned=d.learned; jsave(KEYL,learned); }
       }else{
         const entries=Array.isArray(d)?d:(d&&d.entries);
         if(!Array.isArray(entries)||!entries.every(x=>x.date&&typeof x.usd==="number")) throw 0;
@@ -728,7 +907,8 @@ document.getElementById("jfile").addEventListener("change",ev=>{
   rd.readAsText(f);
 });
 document.getElementById("q-export").addEventListener("click",()=>{
-  const blob=new Blob([JSON.stringify({v:3,accounts:db.accounts,entries:db.entries,holdings:holds},null,2)],
+  const blob=new Blob([JSON.stringify({v:4,accounts:db.accounts,entries:db.entries,holdings:holds,
+                        fx:fxmap,learned,snaplog:jload(KEYS)||[]},null,2)],
                       {type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -739,10 +919,10 @@ document.getElementById("q-export").addEventListener("click",()=>{
 
 /* ══ top + celebrate ══ */
 function updateTop(){
-  const sr=seriesTotals();
+  const sr=series();
   const tEl=document.getElementById("top-total"), dEl=document.getElementById("top-diff");
   if(!sr.length){ tEl.textContent="—"; dEl.textContent=""; return; }
-  const last=sr[sr.length-1], prev=sr[sr.length-2];
+  const last=sr[sr.length-1], prev=sr.length>1?sr[sr.length-2]:null;
   tEl.textContent=fmt(last.total,0)+" ฿";
   if(prev){ const df=last.total-prev.total;
     dEl.textContent=sign(df)+fmt(Math.abs(df),0)+" จากครั้งก่อน"; }
@@ -762,26 +942,92 @@ function countUp(el,target){
   requestAnimationFrame(step);
 }
 function renderDash(){
-  const sr=seriesTotals();
+  const sr=series();
   const totalEl=document.getElementById("d-total");
   if(!sr.length){ totalEl.textContent="—"; return; }
-  const last=sr[sr.length-1], prev=sr[sr.length-2], first=sr[0];
+  const last=sr[sr.length-1], prev=sr.length>1?sr[sr.length-2]:null, first=sr[0];
   countUp(totalEl,last.total);
   const day=document.getElementById("d-day"), since=document.getElementById("d-since");
   if(prev){
     const df=last.total-prev.total, pc=df/prev.total*100;
     day.className="pill "+cls(df);
-    day.textContent="วันนี้ "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(pc).toFixed(2)+"%)";
+    day.textContent="ล่าสุด "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(pc).toFixed(2)+"%) จากเมื่อวันก่อน";
   }else{ day.className="pill flat"; day.textContent="วันนี้ —"; }
   if(sr.length>1){
     const d0=last.total-first.total, p0=d0/first.total*100;
     since.className="pill "+cls(d0);
     since.textContent="ตั้งแต่เริ่ม "+sign(d0)+fmt(Math.abs(d0),0)+" ("+sign(d0)+Math.abs(p0).toFixed(2)+"%)";
   }else{ since.className="pill flat"; since.textContent="ตั้งแต่เริ่ม —"; }
+  renderGrow(sr);
+  renderBreakdown(sr);
   drawLine(sr); drawGrowth(sr);
-  const es=sorted();
-  const ctx=es.length?es[es.length-1]:{vals:{},fx:lastFx()};
-  drawDonut(ctx); drawHoldings(ctx);
+  drawDonut(last); drawHoldings(last);
+}
+
+/* ── การ์ดการเติบโต: วันนี้ / 7 วัน / 30 วัน / YTD / ทั้งหมด ── */
+let growPeriod="1";
+function renderGrow(sr){
+  const line=document.getElementById("grow-line"), empty=document.getElementById("grow-empty");
+  const last=sr[sr.length-1];
+  let base=null;
+  if(growPeriod==="1"){ base=sr.length>1?sr[sr.length-2]:null; }
+  else if(growPeriod==="all"){ base=sr.length>1?sr[0]:null; }
+  else{
+    let startStr;
+    if(growPeriod==="ytd") startStr=last.date.slice(0,4)+"-01-01";
+    else{
+      const dt=new Date(last.date+"T00:00:00");
+      dt.setDate(dt.getDate()-Number(growPeriod));
+      startStr=dt.toISOString().slice(0,10);
+    }
+    const before=sr.filter(s=>s.date<=startStr);
+    base=before.length?before[before.length-1]:null;
+    if(!base){ const inWin=sr.filter(s=>s.date>startStr&&s.date<last.date);
+      base=inWin.length?inWin[0]:null; }
+  }
+  if(!base||base.date===last.date){
+    line.style.display="none"; empty.style.display="block"; return;
+  }
+  line.style.display="flex"; empty.style.display="none";
+  line.textContent="";
+  const df=last.total-base.total, pc=df/base.total*100;
+  const gv=document.createElement("span"); gv.className="gv";
+  gv.textContent=fmt(last.total,0)+" ฿";
+  const pill=document.createElement("span"); pill.className="pill "+cls(df);
+  pill.textContent=(df>=0?"▲":"▼")+" "+sign(df)+fmt(Math.abs(df),0)+" ("+sign(df)+Math.abs(pc).toFixed(2)+"%)";
+  const lb=document.createElement("span");
+  lb.style.cssText="font-size:12px;color:var(--muted)";
+  lb.textContent="จาก "+base.date;
+  line.append(gv,pill,lb);
+}
+document.querySelectorAll("#pchips button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#pchips button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); growPeriod=b.dataset.p;
+    const sr=series(); if(sr.length) renderGrow(sr);
+  });
+});
+
+/* ── การ์ดแยกที่มาของกำไร (ราคา / ค่าเงิน / เงินสด) ── */
+function renderBreakdown(sr){
+  const card=document.getElementById("bd-card"), box=document.getElementById("bd-rows");
+  if(sr.length<2){ card.style.display="none"; return; }
+  const prev=sr[sr.length-2], last=sr[sr.length-1];
+  const dc=decompose(prev,last);
+  const rows=[["📈 ราคาสินทรัพย์",dc.price],["💵 ค่าเงิน (FX)",dc.fxEff],
+              ["💰 เงินสด",dc.cashEff],["🎀 เพิ่ม/ถอนรายการ",dc.flows]]
+    .filter(r=>Math.abs(r[1])>=0.005);
+  if(!rows.length){ card.style.display="none"; return; }
+  card.style.display="";
+  box.textContent="";
+  rows.push(["รวม "+prev.date+" → "+last.date,last.total-prev.total]);
+  rows.forEach(([lbl,v])=>{
+    const r=document.createElement("div"); r.className="bd-row";
+    const l=document.createElement("span"); l.className="bl"; l.textContent=lbl;
+    const x=document.createElement("span"); x.className="bv "+cls(v);
+    x.textContent=sign(v)+fmt(Math.abs(v),0)+" ฿ ("+sign(v)+Math.abs(v/prev.total*100).toFixed(2)+"%)";
+    r.append(l,x); box.appendChild(r);
+  });
 }
 
 const NS="http://www.w3.org/2000/svg";
@@ -887,22 +1133,12 @@ function arcPath(cx,cy,r0,r1,a0,a1){
         big=(a1-a0)>Math.PI?1:0;
   return `M${x0} ${y0} A${r1} ${r1} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${big} 0 ${x3} ${y3} Z`;
 }
-function drawDonut(last){
+function drawDonut(s){
+  /* s = snapshot จาก calculatePortfolioSnapshot — เงินสดรวมเป็นชิ้นหนึ่งของพายเสมอ */
   const svg=document.getElementById("donut"), lg=document.getElementById("legend");
   svg.textContent=""; lg.textContent="";
-  const byG={};
-  Object.keys(last.vals).forEach(id=>{
-    const a=accById(id), k=a?a.grp:"other";
-    byG[k]=(byG[k]||0)+thbVal(last,id);
-  });
-  /* ไม่มีบันทึกกระเป๋า → ใช้สัดส่วนจากรายตัวแทน */
-  if(!Object.values(byG).reduce((s,v)=>s+v,0)){
-    const s=latestSnap();
-    if(s){ const fx=fxOn(s.asof);
-      s.items.forEach(h=>{ const k=normGrp(h.grp);
-        byG[k]=(byG[k]||0)+holdThb(h,fx); }); }
-  }
-  const t=Object.values(byG).reduce((s,v)=>s+v,0);
+  const byG=s.byGroup;
+  const t=s.total;
   if(!t) return;
   const parts=GROUPS.filter(([k])=>byG[k]>0).map(([k,n])=>({k,n,v:byG[k]}));
   const cx=70,cy=70,r0=42,r1=66,pad=2/54;
@@ -923,20 +1159,14 @@ function drawDonut(last){
   });
 }
 
-function drawHoldings(last){
+function drawHoldings(s){
   const box=document.getElementById("holdings"), empty=document.getElementById("hold-empty");
   box.textContent="";
-  const snap=latestSnap();
-  document.getElementById("h-asof").textContent=snap?"("+snap.asof+" • เรท "+fxOn(snap.asof)+")":"";
-  const fx=snap?fxOn(snap.asof):lastFx();
-  const rows=snap?snap.items.map(h=>({name:h.name,grp:normGrp(h.grp),
-    thb:h.cur==="USD"?h.val*fx:h.val})):[];
-  const cash=cashOf(last);
-  if(cash>0) rows.push({name:"เงินสด / Cash",grp:"cash",thb:cash});
+  document.getElementById("h-asof").textContent="("+s.date+" • เรท "+s.fx+") • แตะรายการเพื่อแก้/ดูประวัติ";
+  const rows=s.items.filter(it=>it.thb>0).slice().sort((a,b)=>b.thb-a.thb);
   if(!rows.length){ empty.style.display="block"; return; }
   empty.style.display="none";
-  rows.sort((a,b)=>b.thb-a.thb);
-  const t=rows.reduce((s,r)=>s+r.thb,0), mx=rows[0].thb;
+  const t=s.total, mx=rows[0].thb;
   rows.forEach(r=>{
     const row=document.createElement("div"); row.className="hrow";
     const nm=document.createElement("div"); nm.className="nm";
@@ -948,8 +1178,101 @@ function drawHoldings(last){
     track.appendChild(fill);
     const v=document.createElement("div"); v.className="v"; v.textContent=fmt(r.thb,0);
     const pc=document.createElement("div"); pc.className="pc"; pc.textContent=(r.thb/t*100).toFixed(1)+"%";
-    row.append(nm,track,v,pc); box.appendChild(row);
+    row.append(nm,track,v,pc);
+    row.addEventListener("click",()=>openSheet(r));
+    box.appendChild(row);
   });
+}
+
+/* ══ bottom sheet: แตะรายการ → แก้มูลค่า / ดูประวัติ / ลบ ══ */
+const sheetEl=document.getElementById("sheet"), sheetBg=document.getElementById("sheet-bg");
+function closeSheet(){ sheetEl.classList.remove("on"); sheetBg.classList.remove("on"); }
+sheetBg.addEventListener("click",closeSheet);
+function assetHistory(it){
+  if(it.src==="wallet")
+    return sorted().filter(e=>e.vals[it.id]!=null)
+      .map(e=>({date:e.date,val:e.vals[it.id]}));
+  const nm=it.name.toLowerCase();
+  return holds.snaps.slice().sort((a,b)=>a.asof<b.asof?-1:1)
+    .filter(sp=>sp.items.some(x=>x.name.toLowerCase()===nm))
+    .map(sp=>({date:sp.asof,val:sp.items.find(x=>x.name.toLowerCase()===nm).val}));
+}
+function deleteAsset(it){
+  const d=today();
+  if(it.src==="wallet"){
+    const es=sorted(), lastE=es.length?es[es.length-1]:null;
+    let entry=db.entries.find(x=>x.date===d);
+    if(!entry){ entry={date:d,fx:fxOn(d),vals:lastE?{...lastE.vals}:{}}; db.entries.push(entry); }
+    delete entry.vals[it.id];
+    jsave(KEY3,db);
+  }else{
+    const prevSnap=latestSnap();
+    let snap=holds.snaps.find(x=>x.asof===d);
+    if(!snap){ snap={asof:d,items:prevSnap?JSON.parse(JSON.stringify(prevSnap.items)):[]}; holds.snaps.push(snap); }
+    const nm=it.name.toLowerCase();
+    snap.items=snap.items.filter(x=>x.name.toLowerCase()!==nm);
+    jsave(KEY2,holds);
+  }
+  logSnapshot(); updateTop(); renderDash();
+  bubble("ลบ “"+it.name+"” ออกจากพอร์ตแล้วค่า 🗑 (ประวัติก่อนหน้ายังอยู่ในกราฟนะ)","bot");
+}
+function openSheet(it){
+  const nameEl=document.getElementById("sh-name"), subEl=document.getElementById("sh-sub"),
+        act=document.getElementById("sh-act");
+  nameEl.textContent="";
+  const dot=document.createElement("span"); dot.className="dot"; dot.style.background=grpColor(it.grp);
+  nameEl.append(dot,document.createTextNode(it.name));
+  subEl.textContent=(GNAME[it.grp]||it.grp)+" • "+fmt(it.val)+(it.cur==="USD"?" USD":" ฿")
+    +(it.cur==="USD"?"  ≈ "+fmt(it.thb,0)+" ฿":"");
+  act.textContent="";
+  const mk=(label,fn,cls2)=>{ const b=document.createElement("button");
+    b.textContent=label; if(cls2)b.className=cls2;
+    b.addEventListener("click",fn); act.appendChild(b); return b; };
+  mk("✏️ แก้มูลค่า/ราคา",()=>{
+    act.textContent="";
+    const row=document.createElement("div"); row.className="editrow";
+    const inp=document.createElement("input");
+    inp.type="text"; inp.inputMode="decimal";
+    inp.placeholder="ค่าใหม่ ("+(it.cur==="USD"?"USD":"฿")+") • ล่าสุด "+fmt(it.val);
+    const ok=document.createElement("button"); ok.textContent="บันทึก";
+    ok.addEventListener("click",()=>{
+      const v=Number(inp.value.replace(/,/g,""));
+      if(!(v>=0)||inp.value.trim()===""){ inp.style.borderColor="var(--down)"; return; }
+      closeSheet(); applyValueTo(it,v); renderDash();
+    });
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter") ok.click(); });
+    row.append(inp,ok); act.appendChild(row);
+    setTimeout(()=>inp.focus(),50);
+  });
+  mk("📜 ดูประวัติ",()=>{
+    act.textContent="";
+    const hist=assetHistory(it).slice().reverse();
+    const list=document.createElement("div"); list.className="hist-list";
+    if(!hist.length){ list.textContent="ยังไม่มีประวัติค่ะ"; }
+    hist.forEach((h,i)=>{
+      const r=document.createElement("div"); r.className="hl";
+      const a=document.createElement("span"); a.textContent=h.date;
+      const b=document.createElement("span");
+      let tx=fmt(h.val)+(it.cur==="USD"?" USD":" ฿");
+      const older=hist[i+1];
+      if(older&&older.val){ const pc=(h.val-older.val)/older.val*100;
+        tx+="  ("+sign(pc)+Math.abs(pc).toFixed(2)+"%)"; }
+      b.textContent=tx;
+      r.append(a,b); list.appendChild(r);
+    });
+    act.appendChild(list);
+    mk("ปิด",closeSheet);
+  });
+  const del=mk("🗑 ลบรายการนี้",()=>{
+    if(!del.classList.contains("armed")){
+      del.classList.add("armed"); del.textContent="🗑 แตะอีกครั้งเพื่อยืนยันลบ “"+it.name+"”";
+      setTimeout(()=>{ del.classList.remove("armed"); del.textContent="🗑 ลบรายการนี้"; },3000);
+      return;
+    }
+    closeSheet(); deleteAsset(it);
+  },"danger");
+  mk("ปิด",closeSheet);
+  sheetEl.classList.add("on"); sheetBg.classList.add("on");
 }
 
 /* ══ init ══ */
