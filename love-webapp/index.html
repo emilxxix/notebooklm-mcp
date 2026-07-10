@@ -66,6 +66,33 @@
     <div class="surprise-message" id="surprise-message"></div>
   </section>
 
+  <section class="journal-section">
+    <h2 class="section-title">สมุดบันทึกของเรา 📖</h2>
+    <form id="journal-form" class="journal-form">
+      <input type="date" id="j-date" required />
+      <input type="text" id="j-text" placeholder="เขียนความทรงจำ หรือชื่อวันสำคัญ..." maxlength="120" required />
+      <div class="journal-form-row">
+        <select id="j-type">
+          <option value="note">📝 บันทึกความทรงจำ</option>
+          <option value="day">📌 วันสำคัญ (ขึ้น timeline)</option>
+        </select>
+        <button type="submit">เพิ่ม 🩷</button>
+      </div>
+    </form>
+    <div id="notes-list" class="notes-list"></div>
+  </section>
+
+  <section class="backup-section">
+    <h2 class="section-title">สำรองข้อมูล 💾</h2>
+    <p class="backup-desc">เก็บวันสำคัญและบันทึกทั้งหมดไว้เป็นไฟล์ .md แล้วอัพโหลดกลับมากู้คืนได้ทุกเมื่อ</p>
+    <div class="backup-buttons">
+      <button id="export-btn">📥 ดาวน์โหลดไฟล์สำรอง (.md)</button>
+      <label class="upload-btn" for="import-input">📤 อัพโหลดไฟล์สำรอง</label>
+      <input type="file" id="import-input" accept=".md,.txt" hidden />
+    </div>
+    <p class="backup-status" id="backup-status"></p>
+  </section>
+
 </main>
 
 <footer>
