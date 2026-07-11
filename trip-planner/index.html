@@ -335,17 +335,22 @@
     <div class="field"><textarea id="bakText" rows="7" style="font-size:12px" aria-label="ข้อมูลสำรอง JSON"></textarea></div>
     <div class="dbtns" style="flex-wrap:wrap;justify-content:flex-start">
       <button class="act primary" id="bakCopy">📋 คัดลอก</button>
-      <button class="act" id="bakShare">📤 แชร์ / บันทึกไฟล์</button>
-      <button class="act" id="bakRestore">♻️ กู้คืน</button>
+      <button class="act" id="bakFile">💾 บันทึกเป็นไฟล์</button>
+      <button class="act" id="bakShare">📤 แชร์</button>
+    </div>
+    <div class="dbtns" style="flex-wrap:wrap;justify-content:flex-start;margin-top:8px">
+      <button class="act" id="bakOpen">📂 เปิดจากไฟล์</button>
+      <button class="act" id="bakRestore">♻️ กู้คืนจากข้อความ</button>
       <button class="act" id="bakClose">ปิด</button>
     </div>
+    <input type="file" id="bakUpload" accept=".json,application/json,text/plain" hidden>
   </div>
 </dialog>
 
 <script>
 (function(){
 "use strict";
-const KEY = "cnx-trip-2026-v6";
+const KEY = "cnx-trip-2026-v7";
 const uid = () => Math.random().toString(36).slice(2,9);
 const THB = n => "฿" + (Number(n)||0).toLocaleString("th-TH");
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -388,15 +393,14 @@ function defaults(){
         P("20:15","🛍️","เดินเล่นนิมมาน / One Nimman","นิมมาน",300,""),
         P("21:30","🍜","มาม่าฟ้าธานี มื้อดึกปิดคืนแรก","อื่นๆ",200,"เช็คพิกัด/เวลาเปิดก่อนไปนะ"),
       ]},
-      { id:uid(), label:"วันที่ 3", dateLabel:"อังคาร 28 ก.ค.", zone:"โกเหน่ง → ดอยสุเทพ → ลำดวน → กาดหลวง → เมืองเก่า → สายลาบ → ไนท์บาซาร์", color:DAY_COLORS[2], places:[
+      { id:uid(), label:"วันที่ 3", dateLabel:"อังคาร 28 ก.ค.", zone:"สายกินในเมืองทั้งวัน + บ้านข้างวัด (ไม่ขึ้นดอย)", color:DAY_COLORS[2], places:[
         P("06:45","🥟","ปาท่องโก๋โกเหน่ง อาหารเช้า","ท่าแพ / ตลาดกลางคืน",100,"ใกล้กาดหลวง เดิน/ขับจากโรงแรมแป๊บเดียว ไปเช้าก่อนของหมด"),
-        P("08:00","🚗","ขับขึ้นดอยสุเทพ","เดินทาง",0,"ไปเช้าเลี่ยงรถเยอะ ทางโค้งขับช้าๆ"),
-        P("08:45","🛕","วัดพระธาตุดอยสุเทพ","ดอยสุเทพ–ดอยปุย",100,"ไหว้พระธาตุ ชมวิวเมือง"),
-        P("10:15","🏡","พระตำหนักภูพิงคราชนิเวศน์","ดอยสุเทพ–ดอยปุย",100,"เช็ควันเปิดเข้าชม · ถ้าอยากต่อดอยปุย เลื่อนมื้อเที่ยงเป็นบ่ายโมงครึ่ง"),
-        P("12:30","🍜","ข้าวซอยลำดวน ฟ้าฮ่าม (มื้อเที่ยง)","อื่นๆ",300,"ลงดอยขับ ~25 นาที ริมปิงฝั่งเหนือ"),
+        P("08:15","🛕","วัดพระสิงห์วรมหาวิหาร","เมืองเก่า",0,"ไปเช้าคนน้อย แต่งกายสุภาพ"),
+        P("09:00","🛕","วัดเจดีย์หลวง","เมืองเก่า",100,"เจดีย์องค์ใหญ่กลางเมือง"),
+        P("10:00","🎨","บ้านข้างวัด + วัดอุโมงค์ (ติดกัน)","ดอยสุเทพ–ดอยปุย",300,"หมู่บ้านศิลปิน คาเฟ่ งานคราฟต์ ร้านทยอยเปิด ~10:00"),
+        P("12:30","🍜","ข้าวซอยลำดวน ฟ้าฮ่าม (มื้อเที่ยง)","อื่นๆ",300,"ขับข้ามเมือง ~25 นาที · ร้านปิดช่วงบ่าย อย่าไปสาย"),
         P("14:00","🛍️","ตลาดวโรรส (กาดหลวง) ซื้อของฝาก","ท่าแพ / ตลาดกลางคืน",800,"จากลำดวนลงมา 10 นาที · ไส้อั่ว แคบหมู น้ำพริกหนุ่ม (ร้านปิด ~17:00)"),
-        P("15:30","🛕","วัดพระสิงห์วรมหาวิหาร","เมืองเก่า",0,"แต่งกายสุภาพ"),
-        P("16:15","🛕","วัดเจดีย์หลวง","เมืองเก่า",100,"เจดีย์องค์ใหญ่กลางเมือง"),
+        P("15:45","🏨","กลับโรงแรม เก็บของฝาก + พักเบรก","เมืองเก่า",0,"เก็บแรงไว้ลุยมื้อเย็นสองยก"),
         P("17:30","🥩","มหาลาบ มื้อเย็นยกแรก","อื่นๆ",400,"สายลาบเหนือห้ามพลาด · เช็คพิกัด/เวลาปิดร้านก่อน"),
         P("19:00","🍲","ครัวคุณเรศ มื้อเย็นยกสอง","อื่นๆ",500,"เผื่อพุงไว้สองยก 😄 เช็คพิกัด/เวลาเปิดก่อนไป"),
         P("20:30","🌙","ไนท์บาซาร์ เดินย่อย + ช้อปปิดท้าย","ท่าแพ / ตลาดกลางคืน",400,"เดินจากโรงแรมได้เลย"),
@@ -742,20 +746,41 @@ document.getElementById("bakCopy").addEventListener("click",async()=>{
   btn.textContent = ok ? "✅ คัดลอกแล้ว!" : "⚠️ กดค้างที่ข้อความแล้วเลือกคัดลอก";
   setTimeout(()=>{ btn.textContent = "📋 คัดลอก"; }, 2500);
 });
+const bakFileName = () => ((S.trip && S.trip.title ? S.trip.title : "trip").replace(/[^\wก-๙]+/g,"-").replace(/^-+|-+$/g,"") || "trip") + "-backup.json";
+function bakDownload(){
+  const blob = new Blob([pf("bakText").value], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = bakFileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+document.getElementById("bakFile").addEventListener("click", bakDownload);
 document.getElementById("bakShare").addEventListener("click",async()=>{
   const json = pf("bakText").value;
   try{
-    const file = new File([json], "chiangmai-trip-2026.json", {type:"application/json"});
+    const file = new File([json], bakFileName(), {type:"application/json"});
     if (navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"ข้อมูลทริปเชียงใหม่"}); return;
+      await navigator.share({files:[file], title:"ข้อมูลสำรองทริป"}); return;
     }
-    if (navigator.share){ await navigator.share({title:"ข้อมูลทริปเชียงใหม่", text:json}); return; }
+    if (navigator.share){ await navigator.share({title:"ข้อมูลสำรองทริป", text:json}); return; }
   }catch(e){ if (e && e.name === "AbortError") return; }
-  const blob = new Blob([json], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "chiangmai-trip-2026.json";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  bakDownload();
+});
+const bakUpload = document.getElementById("bakUpload");
+document.getElementById("bakOpen").addEventListener("click",()=>{ bakUpload.value = ""; bakUpload.click(); });
+bakUpload.addEventListener("change",async()=>{
+  const f = bakUpload.files && bakUpload.files[0];
+  if (!f) return;
+  try{
+    const text = await f.text();
+    pf("bakText").value = text;
+    const data = JSON.parse(text);
+    if (!data || !Array.isArray(data.days) || !Array.isArray(data.expenses)) throw new Error("bad");
+    if (!data.trip) data.trip = {title:"ทริปของฉัน ✈️", start:"2026-07-26", end:"2026-07-29"};
+    if (confirm('เปิดไฟล์ "' + f.name + '" สำเร็จ — กู้คืนข้อมูลจากไฟล์นี้เลยไหม? ข้อมูลปัจจุบันจะถูกแทนที่')){
+      S = data; reconcileDays(false); save(); render(); bakDlg.close();
+    }
+  }catch(e){ alert("ไฟล์นี้ไม่ใช่ข้อมูลสำรองของแอพนี้ ลองเลือกไฟล์อื่นดูนะ"); }
 });
 document.getElementById("bakRestore").addEventListener("click",()=>{
   try{
