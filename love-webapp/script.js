@@ -4,15 +4,15 @@ const NICKNAMES = ["พี่อาย", "บิบี๋น้อย", "น้�
 const ANNIVERSARY = new Date(2026, 2, 1); // 1 มี.ค. 2569
 
 const TIMELINE = [
-  { date: "2025-11-02", emoji: "💋", title: "จูบแรกของเรา" },
+  { date: "2025-11-02", emoji: "💋", title: "💋" },
   { date: "2025-12-20", emoji: "⭐", title: "Star Day" },
   { date: "2026-03-01", emoji: "💗", title: "วันครบรอบของเรา" },
   { date: "2026-04-18", emoji: "🏠", title: "บิบี๋น้อยมาบ้านมิลครั้งแรก" },
 ];
 
 const BIRTHDAYS = [
-  { emoji: "🎂", title: "วันเกิดพี่อาย (บิบี๋)", desc: "12 มิถุนายน (ทุกปี)" },
-  { emoji: "🎂", title: "วันเกิดอีมิล", desc: "29 กุมภาพันธ์ (ทุกปี)" },
+  { emoji: "🎂", title: "วันเกิดบิบี๋น้อย", desc: "12 Jun (every year)" },
+  { emoji: "🎂", title: "วันเกิดอีมิล", desc: "29 Feb (every year)" },
 ];
 
 const SURPRISE_MESSAGE = "ให้เลือกอีกกี่ครั้ง ก็ยังเลือกบิบี๋น้อยเหมือนเดิมนะ รักมาก 🤍";
@@ -37,11 +37,11 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function thaiDate(iso) {
+function fmtDate(iso) {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("th-TH", {
-    day: "numeric", month: "long", year: "numeric",
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
   });
 }
 
@@ -70,8 +70,8 @@ function updateCounter() {
   const years = Math.floor(days / 365);
   const remDays = days - years * 365;
   counterSubEl.textContent = years > 0
-    ? `หรือประมาณ ${years} ปี ${remDays} วัน`
-    : `อีกไม่นานจะครบ 1 ปีแล้วนะ`;
+    ? `about ${years} year${years > 1 ? "s" : ""} ${remDays} days`
+    : `Almost 1 year together 🤍`;
 }
 updateCounter();
 setInterval(updateCounter, 60 * 1000);
@@ -92,7 +92,7 @@ function renderTimeline() {
     div.className = "timeline-item";
     div.setAttribute("data-emoji", item.emoji);
     div.innerHTML = `
-      <div class="t-date">${thaiDate(item.date)}</div>
+      <div class="t-date">${fmtDate(item.date)}</div>
       <div class="t-title"></div>
     `;
     div.querySelector(".t-title").textContent = item.title;
@@ -142,7 +142,7 @@ function renderNotes() {
     div.innerHTML = `
       <span>${item.kind === "day" ? "📌" : "📝"}</span>
       <div class="n-body">
-        <div class="n-date">${thaiDate(item.date)}${item.kind === "day" ? " · วันสำคัญ" : ""}</div>
+        <div class="n-date">${fmtDate(item.date)}${item.kind === "day" ? " · วันสำคัญ" : ""}</div>
         <div class="n-text"></div>
       </div>
       <button class="n-del" title="ลบ">✕</button>
@@ -194,16 +194,16 @@ function buildBackupMarkdown() {
   lines.push(`สำรองเมื่อ: ${now.toLocaleString("th-TH")}`);
   lines.push("");
   lines.push("## วันสำคัญ (ในเว็บ)");
-  TIMELINE.forEach((t) => lines.push(`- ${t.emoji} ${t.title} — ${thaiDate(t.date)}`));
+  TIMELINE.forEach((t) => lines.push(`- ${t.emoji} ${t.title} — ${fmtDate(t.date)}`));
   BIRTHDAYS.forEach((t) => lines.push(`- ${t.emoji} ${t.title} — ${t.desc}`));
   lines.push("");
   lines.push("## วันสำคัญที่เพิ่มเอง");
   if (state.customDays.length === 0) lines.push("- (ยังไม่มี)");
-  state.customDays.forEach((t) => lines.push(`- ${t.emoji || "📌"} ${t.title} — ${thaiDate(t.date)}`));
+  state.customDays.forEach((t) => lines.push(`- ${t.emoji || "📌"} ${t.title} — ${fmtDate(t.date)}`));
   lines.push("");
   lines.push("## บันทึกความทรงจำ");
   if (state.notes.length === 0) lines.push("- (ยังไม่มี)");
-  state.notes.forEach((n) => lines.push(`- [${thaiDate(n.date)}] ${n.text}`));
+  state.notes.forEach((n) => lines.push(`- [${fmtDate(n.date)}] ${n.text}`));
   lines.push("");
   lines.push("---");
   lines.push("");
