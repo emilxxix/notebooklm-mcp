@@ -7,24 +7,15 @@ const TIMELINE = [
   { date: "2025-11-02", emoji: "💋", title: "จูบแรกของเรา" },
   { date: "2025-12-20", emoji: "⭐", title: "Star Day" },
   { date: "2026-03-01", emoji: "💗", title: "วันครบรอบของเรา" },
-  { date: "2026-04-18", emoji: "🏠", title: "บิบี๋น้อยมาบ้านผมครั้งแรก" },
+  { date: "2026-04-18", emoji: "🏠", title: "บิบี๋น้อยมาบ้านมิลครั้งแรก" },
 ];
 
 const BIRTHDAYS = [
   { emoji: "🎂", title: "วันเกิดพี่อาย (บิบี๋)", desc: "12 มิถุนายน (ทุกปี)" },
-  { emoji: "🎂", title: "วันเกิดเอมิล", desc: "29 กุมภาพันธ์ (ทุกปี)" },
+  { emoji: "🎂", title: "วันเกิดอีมิล", desc: "29 กุมภาพันธ์ (ทุกปี)" },
 ];
 
-const SURPRISES = [
-  "รู้ไหมว่าทุกครั้งที่คิดถึงพี่อาย ปากมันจะยิ้มเองโดยไม่รู้ตัว 🩷",
-  "ถ้าให้เลือกใหม่อีกกี่รอบ ก็ยังจะเลือกพี่อายเหมือนเดิมทุกครั้งนะ",
-  "อายจัง เป็นคำที่จริงที่สุดในโลกเลย 😳💗",
-  "ขอบคุณที่เป็นบิบี๋น้อยของผม ในทุกวันที่ผ่านมา",
-  "เก็บทุกวันที่มีพี่อายไว้เป็นวันโปรดตลอดไป",
-  "พี่อายคือเหตุผลที่ทำให้วันธรรมดากลายเป็นวันพิเศษ",
-  "น้องจี๊ด ตาแป๋ว ที่รัก... เรียกยังไงก็รักหมดเลย 🥹",
-  "ไม่ว่าจะผ่านไปอีกกี่วัน กี่ปี ผมก็ยังอยากอยู่ตรงนี้กับพี่อาย",
-];
+const SURPRISE_MESSAGE = "ให้เลือกอีกกี่ครั้ง ก็ยังเลือกบิบี๋น้อยเหมือนเดิมนะ รักมาก 🤍";
 
 // ---------- saved state (custom days + notes) ----------
 const STORAGE_KEY = "love-webapp-data-v1";
@@ -287,15 +278,44 @@ lightbox.addEventListener("click", () => {
 const surpriseBtn = document.getElementById("surprise-btn");
 const surpriseMsgEl = document.getElementById("surprise-message");
 
-surpriseBtn.addEventListener("click", (e) => {
-  const msg = SURPRISES[Math.floor(Math.random() * SURPRISES.length)];
-  surpriseMsgEl.textContent = msg;
+const surprisePhotoEl = document.getElementById("surprise-photo");
+
+surpriseBtn.addEventListener("click", () => {
+  surprisePhotoEl.classList.add("show");
+  surpriseMsgEl.textContent = SURPRISE_MESSAGE;
   surpriseMsgEl.classList.add("show");
-  burstHearts(e.clientX, e.clientY, 14);
+  setTimeout(fireworkAroundPhoto, 350);
 });
 
+// white hearts bursting outward around the photo, firework style
+function fireworkAroundPhoto() {
+  const rect = surprisePhotoEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const radius = Math.max(rect.width, rect.height) / 2 + 10;
+  for (let wave = 0; wave < 3; wave++) {
+    setTimeout(() => {
+      for (let i = 0; i < 14; i++) {
+        const angle = (i / 14) * Math.PI * 2 + wave * 0.25;
+        const sx = cx + Math.cos(angle) * radius * 0.85;
+        const sy = cy + Math.sin(angle) * radius * 0.85;
+        const el = document.createElement("span");
+        el.className = "burst-heart";
+        el.textContent = "🤍";
+        const dist = 55 + Math.random() * 75;
+        el.style.left = `${sx}px`;
+        el.style.top = `${sy}px`;
+        el.style.setProperty("--bx", `${Math.cos(angle) * dist}px`);
+        el.style.setProperty("--by", `${Math.sin(angle) * dist}px`);
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 950);
+      }
+    }, wave * 280);
+  }
+}
+
 // ---------- ambient floating hearts ----------
-const HEART_EMOJI = ["💗", "💕", "💖", "🩷", "💘", "❤️"];
+const HEART_EMOJI = ["💗", "💕", "💖", "🩷", "💘", "❤️", "🤍"];
 const heartField = document.getElementById("heart-field");
 
 function spawnAmbientHeart() {
