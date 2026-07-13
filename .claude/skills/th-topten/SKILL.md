@@ -37,6 +37,19 @@ Columns **B–J** (no ENGINE, no TURBO — EVs don't have them):
 - The **F column header updates monthly** (e.g. `Jan-May'26` → `Jan-Jun'26`);
   keep the same text pattern.
 
+### No fabrication — hard rule
+Observed failure mode (from a ChatGPT trial the user ran on the USA sheet): when
+asked "how do you know the engine supplier?", it admitted to inferring suppliers
+from brand reputation (e.g. "Toyota probably builds its own engine") instead of
+reading them from the source file. **Never do this.**
+- Fill a supplier cell **only** from what the user's pasted MarkLines/forecast
+  data explicitly states for that model.
+- No data for that cell → `-`. Never infer from brand identity, "in-house"
+  assumptions, or prior-generation models, even if it seems like a safe guess.
+- If the user explicitly asks for a best-guess/inferred fill, it's allowed —
+  but call it out inline (e.g. "inferred, not in source") so it's never
+  silently mixed with confirmed data.
+
 ## Customer highlight — cyan `00B0F0`, MODEL + COMPONENT specific
 Workbook legend: *"Current customer that we supply parts to them."*
 
