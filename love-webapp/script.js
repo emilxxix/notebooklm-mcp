@@ -65,7 +65,8 @@ const counterSubEl = document.getElementById("counter-sub");
 
 function updateCounter() {
   const now = new Date();
-  const days = Math.floor((now - ANNIVERSARY) / (1000 * 60 * 60 * 24));
+  // นับแบบรวมวันแรก (1 Mar = day 1) ให้ตรงกับแอพ Special Day
+  const days = Math.floor((now - ANNIVERSARY) / (1000 * 60 * 60 * 24)) + 1;
   dayCountEl.textContent = days.toLocaleString("th-TH");
   const years = Math.floor(days / 365);
   const remDays = days - years * 365;
