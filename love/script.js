@@ -17,6 +17,11 @@ const BIRTHDAYS = [
 
 const SURPRISE_MESSAGE = "ให้เลือกอีกกี่ครั้ง ก็ยังเลือกบิบี๋น้อยเหมือนเดิมนะ รักมาก 🤍";
 
+// กิจกรรมของเรา — เพิ่มรูปใหม่: วางไฟล์ใน assets/activities/ แล้วเพิ่มบรรทัดที่นี่
+const ACTIVITIES = [
+  { date: "2026-07-19", emoji: "🎨", title: "วาดรูประบายสี", photos: ["assets/activities/2026-07-19-1.jpeg"] },
+];
+
 // ---------- saved state (custom days + notes) ----------
 const STORAGE_KEY = "love-webapp-data-v1";
 
@@ -259,6 +264,97 @@ document.getElementById("import-input").addEventListener("change", (e) => {
   reader.readAsText(file, "utf-8");
 });
 
+// ---------- activity calendar ----------
+const activityMap = {};
+ACTIVITIES.forEach((a) => { activityMap[a.date] = a; });
+
+const calTitleEl = document.getElementById("cal-title");
+const calGridEl = document.getElementById("cal-grid");
+const dayView = document.getElementById("day-view");
+const dayViewTitle = document.getElementById("day-view-title");
+const dayViewPhotos = document.getElementById("day-view-photos");
+
+let calYear, calMonth;
+{
+  const latest = ACTIVITIES.map((a) => a.date).sort().pop();
+  const base = latest ? new Date(latest) : new Date();
+  calYear = base.getFullYear();
+  calMonth = base.getMonth();
+}
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function renderCalendar() {
+  calTitleEl.textContent = new Date(calYear, calMonth, 1)
+    .toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  calGridEl.innerHTML = "";
+
+  ["S", "M", "T", "W", "T", "F", "S"].forEach((d) => {
+    const el = document.createElement("div");
+    el.className = "cal-dow";
+    el.textContent = d;
+    calGridEl.appendChild(el);
+  });
+
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+
+  for (let i = 0; i < firstDow; i++) {
+    calGridEl.appendChild(document.createElement("div"));
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${calYear}-${pad2(calMonth + 1)}-${pad2(d)}`;
+    const act = activityMap[iso];
+    const el = document.createElement("div");
+    el.className = "cal-day";
+    if (iso === todayIso) el.classList.add("cal-today");
+    el.innerHTML = `<span>${d}</span>`;
+    if (act) {
+      el.classList.add("cal-active");
+      el.innerHTML += `<span class="cal-mark">🤍</span>`;
+      el.addEventListener("click", () => openDayView(act));
+    }
+    calGridEl.appendChild(el);
+  }
+}
+
+function openDayView(act) {
+  dayViewTitle.textContent = `${act.emoji} ${act.title} · ${fmtDate(act.date)}`;
+  dayViewPhotos.innerHTML = "";
+  act.photos.forEach((src) => {
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = act.title;
+    dayViewPhotos.appendChild(img);
+  });
+  dayView.classList.add("open");
+}
+
+document.getElementById("cal-prev").addEventListener("click", () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+});
+
+document.getElementById("cal-next").addEventListener("click", () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+});
+
+document.getElementById("day-view-close").addEventListener("click", () => {
+  dayView.classList.remove("open");
+});
+
+dayView.addEventListener("click", (e) => {
+  if (e.target === dayView) dayView.classList.remove("open");
+});
+
+renderCalendar();
+
 // ---------- gallery lightbox ----------
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
@@ -357,7 +453,7 @@ function burstHearts(x, y, count = 8) {
   }
 }
 
-const NO_BURST = "#surprise-btn, .gallery, .lightbox, .journal-form, .note-item, .backup-buttons, input, select, button, label";
+const NO_BURST = "#surprise-btn, .gallery, .lightbox, .journal-form, .note-item, .backup-buttons, .calendar-card, .day-view, input, select, button, label";
 
 document.addEventListener("click", (e) => {
   if (e.target.closest(NO_BURST)) return;
