@@ -328,6 +328,7 @@ function openDayView(act) {
     const img = document.createElement("img");
     img.src = src;
     img.alt = act.title;
+    img.loading = "lazy";
     dayViewPhotos.appendChild(img);
   });
   dayView.classList.add("open");
