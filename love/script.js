@@ -20,6 +20,8 @@ const SURPRISE_MESSAGE = "ให้เลือกอีกกี่ครั้
 // กิจกรรมของเรา — เพิ่มรูปใหม่: วางไฟล์ใน assets/activities/ แล้วเพิ่มบรรทัดที่นี่
 const ACTIVITIES = [
   { date: "2025-10-17", emoji: "🎬", title: "ดูหนังเรื่องแรก ธี่หยด 3 @ Terminal21 Korat", photos: ["assets/activities/2025-10-17-1.jpeg"] },
+  { date: "2025-12-04", emoji: "🎬", title: "ดูหนังเรื่องที่ 2 Zootopia 2 @ Terminal21 Korat", photos: ["assets/activities/2025-12-04-1.jpeg"] },
+  { date: "2025-12-23", emoji: "🎬", title: "ดูหนังเรื่องที่ 3 Avatar 3 @ Terminal21 Korat", photos: ["assets/activities/2025-12-23-1.jpeg"] },
   { date: "2026-07-19", emoji: "🎨", title: "ระบายสีกัน @ร้านเติมศิลป์", photos: ["assets/activities/2026-07-19-1.jpeg"] },
 ];
 
