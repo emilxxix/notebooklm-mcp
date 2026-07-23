@@ -25,6 +25,7 @@ const ACTIVITIES = [
   { date: "2025-12-23", emoji: "🎬", title: "ดูหนังเรื่องที่ 3 Avatar 3 @ Terminal21 Korat", photos: ["assets/activities/2025-12-23-1.jpeg"] },
   { date: "2026-02-07", emoji: "🎸", title: "คอนเสิร์ต แฝด @ ดิ โอเชี่ยน เขาใหญ่", photos: ["assets/activities/2026-02-07-1.jpeg"] },
   { date: "2026-03-29", emoji: "🎬", title: "ดูหนังเรื่องที่ 4 Hoppers @ Central Ayutthaya", photos: ["assets/activities/2026-03-29-1.jpeg"] },
+  { date: "2026-04-13", emoji: "🎸", title: "คอนเสิร์ต Skyfall Songkran Festival @ Ayutthaya Park", photos: ["assets/activities/2026-04-13-1.jpeg"] },
   { date: "2026-05-31", emoji: "🎬", title: "ดูหนังเรื่องที่ 5 Detective Conan The Movie @ Central World", photos: ["assets/activities/2026-05-31-1.jpeg"] },
   { date: "2026-07-18", emoji: "🎬", title: "ดูหนังเรื่องที่ 6 Toy Story 5 @ Central Ayutthaya", photos: ["assets/activities/2026-07-18-1.jpeg"] },
   { date: "2026-07-19", emoji: "🎨", title: "ระบายสีกัน @ร้านเติมศิลป์", photos: ["assets/activities/2026-07-19-1.jpeg"] },
