@@ -437,6 +437,13 @@ section {
   gap: 12px;
 }
 
+.day-view-activity-title {
+  color: var(--pink-600);
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
 .day-view-photos img {
   width: 100%;
   border-radius: 14px;
