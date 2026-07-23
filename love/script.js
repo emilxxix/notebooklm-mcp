@@ -24,11 +24,11 @@ const ACTIVITIES = [
   { date: "2025-12-04", emoji: "🎬", title: "ดูหนังเรื่องที่ 2 Zootopia 2 @ Terminal21 Korat", photos: ["assets/activities/2025-12-04-1.jpeg"] },
   { date: "2025-12-23", emoji: "🎬", title: "ดูหนังเรื่องที่ 3 Avatar 3 @ Terminal21 Korat", photos: ["assets/activities/2025-12-23-1.jpeg"] },
   { date: "2026-02-07", emoji: "🎸", title: "คอนเสิร์ต แฝด @ ดิ โอเชี่ยน เขาใหญ่", photos: ["assets/activities/2026-02-07-1.jpeg"] },
-  { date: "2026-03-01", emoji: "🚂", title: "Monorail @ Pattaya Park", photos: ["assets/activities/2026-03-01-1.jpeg"] },
-  { date: "2026-03-07", emoji: "⚽", title: "ฟุตบอล นครราชสีมา มาสด้า vs บุรีรัมย์ ยูไนเต็ด @ สนาม 80 พรรษา", photos: ["assets/activities/2026-03-07-1.jpeg"] },
+  { date: "2026-03-01", emoji: "🚂", title: "Monorail @ Pattaya Park", photos: ["assets/activities/2026-03-29-2.jpeg"] },
+  { date: "2026-03-07", emoji: "⚽", title: "ฟุตบอล นครราชสีมา มาสด้า vs บุรีรัมย์ ยูไนเต็ด @ สนาม 80 พรรษา", photos: ["assets/activities/2026-03-01-1.jpeg"] },
   { date: "2026-03-28", emoji: "🎭", title: "Disney on Ice: Magic in the Stars @ Impact Arena", photos: ["assets/activities/2026-03-28-1.jpeg"] },
   { date: "2026-03-29", emoji: "🎬", title: "ดูหนังเรื่องที่ 4 Hoppers @ Central Ayutthaya", photos: ["assets/activities/2026-03-29-1.jpeg"] },
-  { date: "2026-03-29", emoji: "🚗", title: "Motor Show Impact Challenger @ Impact Muang Thong Thani", photos: ["assets/activities/2026-03-29-2.jpeg"] },
+  { date: "2026-03-29", emoji: "🚗", title: "Motor Show Impact Challenger @ Impact Muang Thong Thani", photos: ["assets/activities/2026-03-07-1.jpeg"] },
   { date: "2026-04-13", emoji: "🎸", title: "คอนเสิร์ต Skyfall Songkran Festival @ Ayutthaya Park", photos: ["assets/activities/2026-04-13-1.jpeg"] },
   { date: "2026-04-15", emoji: "🎸", title: "คอนเสิร์ต X Festival @ โกดังสเตเดียม", photos: ["assets/activities/2026-04-15-1.jpeg"] },
   { date: "2026-05-31", emoji: "🎬", title: "ดูหนังเรื่องที่ 5 Detective Conan The Movie @ Central World", photos: ["assets/activities/2026-05-31-1.jpeg"] },
@@ -343,12 +343,10 @@ function openDayView(iso, acts) {
   dayViewTitle.textContent = fmtDate(iso);
   dayViewPhotos.innerHTML = "";
   acts.forEach((act) => {
-    if (acts.length > 1) {
-      const label = document.createElement("div");
-      label.className = "day-view-activity-title";
-      label.textContent = `${act.emoji} ${act.title}`;
-      dayViewPhotos.appendChild(label);
-    }
+    const label = document.createElement("div");
+    label.className = "day-view-activity-title";
+    label.textContent = `${act.emoji} ${act.title}`;
+    dayViewPhotos.appendChild(label);
     act.photos.forEach((src) => {
       const img = document.createElement("img");
       img.src = src;
