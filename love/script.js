@@ -169,18 +169,54 @@ PHOTO_EVENTS.forEach((ev) => {
   title.className = "event-title";
   title.textContent = `${ev.emoji} ${ev.title}`;
   card.appendChild(title);
-  const grid = document.createElement("div");
-  grid.className = "event-photos";
+
+  // กองรูปซ้อน: ปก + อีก 2 รูปเอียงอยู่ข้างหลัง + ป้ายจำนวนรวม
+  const stack = document.createElement("div");
+  stack.className = "photo-stack";
+  const behind = [ev.photos[2], ev.photos[1]].filter(Boolean);
+  behind.forEach((src, i) => {
+    const img = document.createElement("img");
+    img.className = `stack-img s${3 - i}`;
+    img.src = src;
+    img.alt = ev.title;
+    img.loading = "lazy";
+    stack.appendChild(img);
+  });
+  const cover = document.createElement("img");
+  cover.className = "stack-img s1";
+  cover.src = ev.photos[0];
+  cover.alt = ev.title;
+  stack.appendChild(cover);
+
+  const count = document.createElement("div");
+  count.className = "stack-count";
+  count.textContent = `${ev.photos.length} photos`;
+  stack.appendChild(count);
+
+  stack.addEventListener("click", () => openEventView(ev));
+  card.appendChild(stack);
+
+  const hint = document.createElement("p");
+  hint.className = "event-hint";
+  hint.textContent = "แตะเพื่อดูรูปทั้งหมด 🤍";
+  card.appendChild(hint);
+
+  eventsListEl.appendChild(card);
+});
+
+// เปิดดูรูปทั้งหมดของหมวด (ใช้ overlay เดียวกับปฏิทิน)
+function openEventView(ev) {
+  dayViewTitle.textContent = `${ev.emoji} ${ev.title} · ${ev.photos.length} photos`;
+  dayViewPhotos.innerHTML = "";
   ev.photos.forEach((src) => {
     const img = document.createElement("img");
     img.src = src;
     img.alt = ev.title;
     img.loading = "lazy";
-    grid.appendChild(img);
+    dayViewPhotos.appendChild(img);
   });
-  card.appendChild(grid);
-  eventsListEl.appendChild(card);
-});
+  dayView.classList.add("open");
+}
 
 // ---------- backup: export .md ----------
 const backupStatusEl = document.getElementById("backup-status");
@@ -370,7 +406,6 @@ function openLightboxOnImg(e) {
 }
 
 document.getElementById("gallery").addEventListener("click", openLightboxOnImg);
-eventsListEl.addEventListener("click", openLightboxOnImg);
 
 lightbox.addEventListener("click", () => {
   lightbox.classList.remove("open");

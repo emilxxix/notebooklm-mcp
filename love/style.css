@@ -626,22 +626,50 @@ section {
   text-align: center;
 }
 
-.event-photos {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.event-photos img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 14px;
+.photo-stack {
+  position: relative;
+  width: min(250px, 65vw);
+  aspect-ratio: 3 / 4;
+  margin: 10px auto 6px;
   cursor: pointer;
-  transition: transform 0.25s ease;
 }
 
-.event-photos img:hover { transform: scale(1.03); }
+.stack-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 4px solid #fff;
+  box-shadow: 0 8px 22px rgba(74, 35, 52, 0.25);
+}
+
+.stack-img.s3 { transform: rotate(6deg) translate(12px, 6px); }
+.stack-img.s2 { transform: rotate(-5deg) translate(-10px, 4px); }
+.stack-img.s1 { transform: none; }
+
+.photo-stack:active .stack-img.s1 { transform: scale(0.97); }
+
+.stack-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(30, 15, 22, 0.65);
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+.event-hint {
+  text-align: center;
+  color: var(--pink-400);
+  font-size: 0.82rem;
+  margin: 12px 0 0;
+}
 
 /* BACKUP */
 .backup-section { text-align: center; }
