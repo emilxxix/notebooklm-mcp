@@ -82,20 +82,9 @@
     <div class="surprise-message" id="surprise-message"></div>
   </section>
 
-  <section class="journal-section">
-    <h2 class="section-title">สมุดบันทึกของเรา 📖</h2>
-    <form id="journal-form" class="journal-form">
-      <input type="date" id="j-date" required />
-      <input type="text" id="j-text" placeholder="เขียนความทรงจำ หรือชื่อวันสำคัญ..." maxlength="120" required />
-      <div class="journal-form-row">
-        <select id="j-type">
-          <option value="note">📝 บันทึกความทรงจำ</option>
-          <option value="day">📌 วันสำคัญ (ขึ้น timeline)</option>
-        </select>
-        <button type="submit">เพิ่ม 🩷</button>
-      </div>
-    </form>
-    <div id="notes-list" class="notes-list"></div>
+  <section class="events-section">
+    <h2 class="section-title">Photo Events 📸</h2>
+    <div id="events-list"></div>
   </section>
 
   <section class="backup-section">

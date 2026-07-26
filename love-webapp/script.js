@@ -134,73 +134,42 @@ function renderTimeline() {
 
 renderTimeline();
 
-// ---------- journal ----------
-const journalForm = document.getElementById("journal-form");
-const jDate = document.getElementById("j-date");
-const jText = document.getElementById("j-text");
-const jType = document.getElementById("j-type");
-const notesListEl = document.getElementById("notes-list");
+// ---------- photo events ----------
+// เพิ่มหมวดใหม่: วางรูปใน assets/events/ แล้วเพิ่ม entry ที่นี่
+const PHOTO_EVENTS = [
+  {
+    emoji: "🚗",
+    title: "Car Parking",
+    photos: [
+      "assets/events/car-parking-1.jpeg",
+      "assets/events/car-parking-2.jpeg",
+      "assets/events/car-parking-3.jpeg",
+      "assets/events/car-parking-4.jpeg",
+      "assets/events/car-parking-5.jpeg",
+    ],
+  },
+];
 
-jDate.valueAsDate = new Date();
+const eventsListEl = document.getElementById("events-list");
 
-function renderNotes() {
-  notesListEl.innerHTML = "";
-
-  const items = [
-    ...state.notes.map((n) => ({ ...n, kind: "note" })),
-    ...state.customDays.map((n) => ({ ...n, kind: "day" })),
-  ].sort((a, b) => b.date.localeCompare(a.date));
-
-  if (items.length === 0) {
-    notesListEl.innerHTML = `<p class="notes-empty">ยังไม่มีบันทึกเลย ลองเขียนความทรงจำแรกดูสิ 🩷</p>`;
-    return;
-  }
-
-  items.forEach((item) => {
-    const div = document.createElement("div");
-    div.className = "note-item";
-    div.innerHTML = `
-      <span>${item.kind === "day" ? "📌" : "📝"}</span>
-      <div class="n-body">
-        <div class="n-date">${fmtDate(item.date)}${item.kind === "day" ? " · วันสำคัญ" : ""}</div>
-        <div class="n-text"></div>
-      </div>
-      <button class="n-del" title="ลบ">✕</button>
-    `;
-    div.querySelector(".n-text").textContent = item.kind === "day" ? item.title : item.text;
-    div.querySelector(".n-del").addEventListener("click", () => {
-      if (item.kind === "day") {
-        state.customDays = state.customDays.filter((d) => d.id !== item.id);
-      } else {
-        state.notes = state.notes.filter((d) => d.id !== item.id);
-      }
-      saveState();
-      renderNotes();
-      renderTimeline();
-    });
-    notesListEl.appendChild(div);
+PHOTO_EVENTS.forEach((ev) => {
+  const card = document.createElement("div");
+  card.className = "event-card";
+  const title = document.createElement("h3");
+  title.className = "event-title";
+  title.textContent = `${ev.emoji} ${ev.title}`;
+  card.appendChild(title);
+  const grid = document.createElement("div");
+  grid.className = "event-photos";
+  ev.photos.forEach((src) => {
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = ev.title;
+    img.loading = "lazy";
+    grid.appendChild(img);
   });
-}
-
-renderNotes();
-
-journalForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const date = jDate.value;
-  const text = jText.value.trim();
-  if (!date || !text) return;
-
-  if (jType.value === "day") {
-    state.customDays.push({ id: Date.now(), date, title: text, emoji: "📌" });
-  } else {
-    state.notes.push({ id: Date.now(), date, text });
-  }
-  saveState();
-  renderNotes();
-  renderTimeline();
-  jText.value = "";
-  const rect = journalForm.getBoundingClientRect();
-  burstHearts(rect.left + rect.width / 2, rect.top + 20, 10);
+  card.appendChild(grid);
+  eventsListEl.appendChild(card);
 });
 
 // ---------- backup: export .md ----------
@@ -267,7 +236,6 @@ document.getElementById("import-input").addEventListener("change", (e) => {
       state.customDays = data.customDays;
       state.notes = data.notes;
       saveState();
-      renderNotes();
       renderTimeline();
       backupStatusEl.textContent = `กู้คืนข้อมูลสำเร็จ! (วันสำคัญ ${state.customDays.length} · บันทึก ${state.notes.length}) 🥰`;
     } catch (err) {
@@ -384,12 +352,15 @@ renderCalendar();
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
 
-document.getElementById("gallery").addEventListener("click", (e) => {
+function openLightboxOnImg(e) {
   if (e.target.tagName === "IMG") {
     lightboxImg.src = e.target.src;
     lightbox.classList.add("open");
   }
-});
+}
+
+document.getElementById("gallery").addEventListener("click", openLightboxOnImg);
+eventsListEl.addEventListener("click", openLightboxOnImg);
 
 lightbox.addEventListener("click", () => {
   lightbox.classList.remove("open");
@@ -478,7 +449,7 @@ function burstHearts(x, y, count = 8) {
   }
 }
 
-const NO_BURST = "#surprise-btn, .gallery, .lightbox, .journal-form, .note-item, .backup-buttons, .calendar-card, .day-view, input, select, button, label";
+const NO_BURST = "#surprise-btn, .gallery, .lightbox, .events-section, .backup-buttons, .calendar-card, .day-view, input, select, button, label";
 
 document.addEventListener("click", (e) => {
   if (e.target.closest(NO_BURST)) return;
