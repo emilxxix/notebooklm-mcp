@@ -146,6 +146,11 @@ const PHOTO_EVENTS = [
       "assets/events/car-parking-3.jpeg",
       "assets/events/car-parking-4.jpeg",
       "assets/events/car-parking-5.jpeg",
+      "assets/events/car-parking-6.jpeg",
+      "assets/events/car-parking-7.jpeg",
+      "assets/events/car-parking-8.jpeg",
+      "assets/events/car-parking-9.jpeg",
+      "assets/events/car-parking-10.jpeg",
     ],
   },
 ];
