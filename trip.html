@@ -583,11 +583,13 @@ function renderBudget(){
 /* ---------- summary ---------- */
 function renderSummary(){
   const planned = S.expenses.reduce((a,e)=>a+(Number(e.planned)||0),0);
-  const actual  = S.expenses.reduce((a,e)=>a+(Number(e.actual)||0),0);
+  const expActual = S.expenses.reduce((a,e)=>a+(Number(e.actual)||0),0);
+  const planSpent = S.days.reduce((a,d)=>a+d.places.filter(p=>p.done).reduce((s,p)=>s+(Number(p.cost)||0),0),0);
+  const actual = expActual + planSpent;
   const diff = planned - actual;
   document.getElementById("tiles").innerHTML = `
     <div class="tile"><div class="lb">🎯 งบที่ตั้งไว้</div><div class="vl num">${THB(planned)}</div><div class="cap">รวมทุกหมวด</div></div>
-    <div class="tile"><div class="lb">💸 จ่ายจริงแล้ว</div><div class="vl num">${THB(actual)}</div><div class="cap">${planned?Math.round(actual/planned*100):0}% ของงบ</div></div>
+    <div class="tile"><div class="lb">💸 จ่ายจริงแล้ว</div><div class="vl num">${THB(actual)}</div><div class="cap num">บุ๊คกิ้ง ${THB(expActual)} + หน้างาน ${THB(planSpent)}</div></div>
     <div class="tile"><div class="lb">${diff>=0?"🐷 งบคงเหลือ":"🔥 เกินงบ"}</div>
       <div class="vl num" style="color:${diff>=0?"var(--good)":"var(--bad)"}">${THB(Math.abs(diff))}</div>
       <div class="cap">${diff>=0?"ยังอยู่ในแผน เก่งมาก!":"ลองลดหมวดที่ยังไม่จ่ายดูนะ"}</div></div>`;
@@ -621,7 +623,19 @@ function renderSummary(){
       </div>
       ${ov?'<div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-top:3px">⚠️ เกินงบ '+THB(c.actual-c.planned)+'</div>':""}
     </div>`;
-  }).join("");
+  }).join("") + (planSpent>0 ? (()=>{
+    const cashBudget = Math.max(planned - expActual, 0);
+    const p = cashBudget ? Math.min(planSpent/cashBudget*100,100) : 100;
+    const ovc = cashBudget && planSpent > cashBudget;
+    return `<div class="catrow">
+      <div class="line1"><span class="cn">📅 จ่ายหน้างานจากแพลน (จุดที่ติ๊ก ✓)</span>
+        <span class="cv num">${THB(planSpent)} / ${THB(cashBudget)}</span></div>
+      <div class="bar" role="img" aria-label="จ่ายหน้างาน ${THB(planSpent)} จากงบคงเหลือหลังบุ๊คกิ้ง ${THB(cashBudget)}">
+        <div class="fill nonzero" style="width:${p}%;background:${ovc?"var(--bad)":"var(--pandan)"}"></div>
+      </div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:3px">รวมราคาทุกจุดที่ติ๊ก ✓ ในหน้าแพลน เทียบกับงบที่เหลือหลังหักบุ๊คกิ้ง — เงินหน้างานให้จดที่แพลนทางเดียวพอ อย่ากรอกซ้ำในช่อง "จ่ายจริง" ของหมวดเงินสดข้างบน เดี๋ยวยอดนับสองรอบ</div>
+    </div>`;
+  })() : "");
 
   const dayPlanSums = S.days.map((d,di)=>({di, sum: d.places.filter(p=>p.zone!=="เดินทาง").reduce((a,p)=>a+(Number(p.cost)||0),0)}));
   const planSum = dayPlanSums.reduce((a,x)=>a+x.sum,0);
