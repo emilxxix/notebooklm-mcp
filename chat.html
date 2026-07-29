@@ -216,6 +216,11 @@
         <div id="bd-rows"></div>
       </div>
 
+      <div class="card" id="rz-card" style="display:none">
+        <h2>💸 กำไรที่ขายจริงสะสม</h2>
+        <div id="rz-rows"></div>
+      </div>
+
       <div class="card">
         <h2>🌷 มูลค่ารวมตามเวลา</h2>
         <div class="chartbox">
@@ -354,7 +359,7 @@ function calculatePortfolioSnapshot(dateStr){
     const g=normGrp(h.grp);
     snapGroups.add(g);
     items.push({name:h.name,grp:g,cur:h.cur||"THB",val:h.val,
-                thb:h.cur==="USD"?h.val*fx:h.val,src:"hold"});
+                thb:h.cur==="USD"?h.val*fx:h.val,src:"hold",cost:h.cost!=null?h.cost:null});
   });
   if(entry) Object.keys(entry.vals).forEach(id=>{
     const a=accById(id); if(!a||a.off) return;
@@ -401,6 +406,21 @@ function decompose(s0,s1){
 }
 /* ── Snapshot log รายวัน: บันทึกประวัติพอร์ตทุกครั้งที่มีการเปลี่ยนแปลง ── */
 const KEYS="emil_moni_snaplog_v1";
+const KEYRZ="emil_moni_realized_v1";   /* ประวัติการขาย: กำไร/ขาดทุนที่ realize แล้ว */
+/* หาไอเทมรายตัวในวันนี้ (สร้าง snapshot ของวันนี้จาก snapshot ล่าสุดถ้ายังไม่มี) แล้วคืน snap ให้แก้ */
+function todaySnapFor(){
+  const d=today();
+  const prevSnap=latestSnap();
+  let snap=holds.snaps.find(x=>x.asof===d);
+  if(!snap){ snap={asof:d,items:prevSnap?JSON.parse(JSON.stringify(prevSnap.items)):[]}; holds.snaps.push(snap); }
+  return snap;
+}
+function setCostByName(name,cost){
+  const snap=todaySnapFor();
+  const it=snap.items.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(it) it.cost=cost;
+  jsave(KEY2,holds);
+}
 function logSnapshot(){
   const s=calculatePortfolioSnapshot(today());
   if(!s.total) return;
@@ -536,6 +556,8 @@ function scrollBottom(){ const v=document.getElementById("view-chat"); v.scrollT
 /* ══ โหมดแก้ค่า: รอเลือกตัว / รอตัวเลขใหม่ ══ */
 let pendEdit=null;   /* {target:item} รอผู้ใช้พิมพ์ค่าใหม่ */
 let pendPick=null;   /* [items] รอผู้ใช้พิมพ์หมายเลขจากลิสต์ */
+let pendCost=null;   /* {name,onDone} รอผู้ใช้พิมพ์ต้นทุนตอนเพิ่มรายการใหม่ */
+let pendSell=null;   /* {stage:'price',item} รอผู้ใช้พิมพ์ราคาที่ขายได้ */
 function applyValueTo(t,val){
   if(t.src==="wallet") applyParsed({wallet:{[t.id]:val},holds:[],unknown:[],fx:null});
   else applyParsed({wallet:{},holds:[{name:t.name,grp:t.grp,cur:t.cur,val}],unknown:[],fx:null});
@@ -587,9 +609,19 @@ function askNext(){
             learned[u.name.toLowerCase()]={name:u.name,grp:op.k,cur:op2.cur};
             jsave(KEYL,learned);
             applyParsed({wallet:{},holds:[{name:u.name,grp:op.k,cur:op2.cur,val:u.val}],unknown:[],fx:null});
-            askNext();
+            askForCostOptional(u.name,askNext);
           });
       }
+    });
+}
+/* ── ถามต้นทุนตอนเพิ่มรายการใหม่ (ไม่บังคับ) — ไว้ใช้คำนวณกำไร/ขาดทุนตอนขายจริง ── */
+function askForCostOptional(name,onDone){
+  chipsBubble("รู้ต้นทุนที่ซื้อ “"+name+"” มาไหมคะ? (ไม่บังคับ ใส่ไว้จะคำนวณกำไร/ขาดทุนตอนขายให้แม่นขึ้น)",
+    [{label:"ระบุต้นทุน",set:true},{label:"ข้ามไปก่อน",set:false}],
+    op=>{
+      if(!op.set){ onDone(); return; }
+      pendCost={name,onDone};
+      bubble("พิมพ์ต้นทุนของ “"+name+"” มาได้เลยค่ะ (ตัวเลขอย่างเดียว หน่วยเดียวกับที่จด)","bot");
     });
 }
 
@@ -796,12 +828,45 @@ function route(text){
     }
     pendEdit=null;   /* พิมพ์อย่างอื่น = ยกเลิกโหมดแก้ */
   }
+  /* รอต้นทุนที่พิมพ์ตอนเพิ่มรายการใหม่ (ไม่บังคับ) */
+  if(pendCost){
+    const {name,onDone}=pendCost;
+    if(/^\d+(\.\d+)?$/.test(t0)){
+      pendCost=null;
+      setCostByName(name,Number(t0));
+      bubble("ตั้งต้นทุน "+name+" = "+fmt(Number(t0))+" แล้วค่า ✅","bot");
+      onDone(); return;
+    }
+    pendCost=null;
+    bubble("ข้ามการตั้งต้นทุนไปก่อนนะคะ ตั้งทีหลังได้ที่ปุ่ม 🏷 ในหน้าสรุปพอร์ต","bot");
+    onDone();   /* ไม่ return — ให้ข้อความที่พิมพ์มาไปเข้า routing ปกติต่อ */
+  }
+  /* รอราคาที่ขายได้ */
+  if(pendSell && pendSell.stage==="price"){
+    if(/^\d+(\.\d+)?$/.test(t0)){
+      const item=pendSell.item; pendSell=null;
+      askSellDestination(item,Number(t0)); return;
+    }
+    pendSell=null;   /* พิมพ์อย่างอื่น = ยกเลิกการขาย */
+  }
   if(/^(update|อัปเดต|อัพเดต|อัพเดท)$/i.test(text.trim())){ showUpdateList(); return; }
   const em=text.trim().match(/^(?:edit|แก้ไข|แก้)\s+(.+)$/i);
   if(em && !/\d/.test(em[1])){ startEdit(em[1].trim()); return; }
+  const sm=text.trim().match(/^(?:ขาย|sell)\s+(.+)$/i);
+  if(sm){
+    const mNum=sm[1].trim().match(/^(.*?)\s+(\d+(?:\.\d+)?)$/);
+    const nameQ=mNum?mNum[1].trim():sm[1].trim();
+    const priceInline=mNum?Number(mNum[2]):null;
+    const s=calculatePortfolioSnapshot(today());
+    const it=s.items.find(x=>x.grp!=="cash"&&x.name.toLowerCase()===nameQ.toLowerCase())
+          ||s.items.find(x=>x.grp!=="cash"&&x.name.toLowerCase().includes(nameQ.toLowerCase()));
+    if(!it){ bubble("ไม่เจอ “"+nameQ+"” ในพอร์ตเลยค่า 🥺 พิมพ์ “อัปเดต” เพื่อดูรายการทั้งหมดได้นะ","bot"); return; }
+    if(priceInline!=null) askSellDestination(it,priceInline); else startSell(it);
+    return;
+  }
   if(/^สรุป/.test(text)){ summaryBubble(); return; }
   if(/^(ตัวอย่าง|ช่วย|help|วิธี)/i.test(text)){
-    bubble("พิมพ์สบายๆ ได้เลยค่า ✍️ ชื่อ + ตัวเลข เช่น\n\nTLUS500-UH-X 6499.64\nTSLA 36.70\nกองทุนทั่วไป 13788.31\nทองแท่ง 16350\ndime 135.17 fx 33.28\n\n• หลายบรรทัดในข้อความเดียวได้\n• พิมพ์ “อัปเดต” → เลือกตัวจากลิสต์แล้วใส่ค่าใหม่ ไม่ต้องพิมพ์ชื่อเอง\n• หรือ “แก้ TSLA” / “TSLA = 35.1” ก็ได้\n• ชื่อใหม่ที่ไม่รู้จัก เดี๋ยวถามว่าเป็นหุ้น/กอง/ทอง/PVD แล้วจำไว้เลย\n• แนบรูป 📷 เดี๋ยวจับคู่ชื่อ-ตัวเลขให้อัตโนมัติ","bot");
+    bubble("พิมพ์สบายๆ ได้เลยค่า ✍️ ชื่อ + ตัวเลข เช่น\n\nTLUS500-UH-X 6499.64\nTSLA 36.70\nกองทุนทั่วไป 13788.31\nทองแท่ง 16350\ndime 135.17 fx 33.28\n\n• หลายบรรทัดในข้อความเดียวได้\n• พิมพ์ “อัปเดต” → เลือกตัวจากลิสต์แล้วใส่ค่าใหม่ ไม่ต้องพิมพ์ชื่อเอง\n• หรือ “แก้ TSLA” / “TSLA = 35.1” ก็ได้\n• พิมพ์ “ขาย TSLA” หรือ “ขาย TSLA 35.10” เพื่อขาย เลือกได้ว่าเงินเข้าบัญชีไหน\n• ชื่อใหม่ที่ไม่รู้จัก เดี๋ยวถามว่าเป็นหุ้น/กอง/ทอง/PVD แล้วจำไว้เลย\n• แนบรูป 📷 เดี๋ยวจับคู่ชื่อ-ตัวเลขให้อัตโนมัติ","bot");
     return;
   }
   const p=parseFree(text,false);
@@ -889,6 +954,7 @@ document.getElementById("jfile").addEventListener("change",ev=>{
           {snaps:[{asof:d.holdings.asof||"",items:d.holdings.items||[]}]}; jsave(KEY2,holds); }
         if(d.fx && typeof d.fx==="object"){ fxmap=d.fx; jsave(KEYFX,fxmap); }
         if(Array.isArray(d.snaplog)) jsave(KEYS,d.snaplog);
+        if(Array.isArray(d.realized)) jsave(KEYRZ,d.realized);
         if(d.learned && typeof d.learned==="object"){ learned=d.learned; jsave(KEYL,learned); }
       }else{
         const entries=Array.isArray(d)?d:(d&&d.entries);
@@ -908,7 +974,7 @@ document.getElementById("jfile").addEventListener("change",ev=>{
 });
 document.getElementById("q-export").addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify({v:4,accounts:db.accounts,entries:db.entries,holdings:holds,
-                        fx:fxmap,learned,snaplog:jload(KEYS)||[]},null,2)],
+                        fx:fxmap,learned,snaplog:jload(KEYS)||[],realized:jload(KEYRZ)||[]},null,2)],
                       {type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -960,8 +1026,31 @@ function renderDash(){
   }else{ since.className="pill flat"; since.textContent="ตั้งแต่เริ่ม —"; }
   renderGrow(sr);
   renderBreakdown(sr);
+  renderRealized();
   drawLine(sr); drawGrowth(sr);
   drawDonut(last); drawHoldings(last);
+}
+
+/* ── การ์ดกำไร/ขาดทุนที่ realize แล้วจากการขาย (สะสม) ── */
+function renderRealized(){
+  const card=document.getElementById("rz-card"), box=document.getElementById("rz-rows");
+  const rz=jload(KEYRZ)||[];
+  if(!rz.length){ card.style.display="none"; return; }
+  card.style.display=""; box.textContent="";
+  rz.slice().reverse().slice(0,8).forEach(r=>{
+    const row=document.createElement("div"); row.className="bd-row";
+    const l=document.createElement("span"); l.className="bl";
+    l.textContent=r.date+" • "+r.name+(r.approx?" (ประมาณ)":"");
+    const v=document.createElement("span"); v.className="bv "+cls(r.plThb);
+    v.textContent=sign(r.plThb)+fmt(Math.abs(r.plThb),0)+" ฿";
+    row.append(l,v); box.appendChild(row);
+  });
+  const total=rz.reduce((s,r)=>s+r.plThb,0);
+  const sumRow=document.createElement("div"); sumRow.className="bd-row";
+  const l=document.createElement("span"); l.className="bl"; l.textContent="รวมสะสมทั้งหมด ("+rz.length+" รายการ)";
+  const v=document.createElement("span"); v.className="bv "+cls(total);
+  v.textContent=sign(total)+fmt(Math.abs(total),0)+" ฿";
+  sumRow.append(l,v); box.appendChild(sumRow);
 }
 
 /* ── การ์ดการเติบโต: วันนี้ / 7 วัน / 30 วัน / YTD / ทั้งหมด ── */
@@ -1216,6 +1305,76 @@ function deleteAsset(it){
   logSnapshot(); updateTop(); renderDash();
   bubble("ลบ “"+it.name+"” ออกจากพอร์ตแล้วค่า 🗑 (ประวัติก่อนหน้ายังอยู่ในกราฟนะ)","bot");
 }
+
+/* ══ ขายรายการ: ถามราคาขาย → ถามปลายทางเงิน → คำนวณกำไร/ขาดทุนจริง → เอาออกจากพอร์ต ══ */
+function convertCur(amt,fromCur,toCur,fx){
+  if(fromCur===toCur) return amt;
+  return fromCur==="USD" ? amt*fx : amt/fx;
+}
+function startSell(item){
+  pendSell={stage:"price",item};
+  bubble("ขาย “"+item.name+"” ได้เท่าไหร่คะ? (พิมพ์ตัวเลข "+(item.cur==="USD"?"USD":"฿")
+    +" • มูลค่าล่าสุดที่จดไว้ "+fmt(item.val)+")","bot");
+}
+function askSellDestination(item,price){
+  const fx=fxOn(today());
+  const proceedsThb=convertCur(price,item.cur,"THB",fx);
+  const opts=db.accounts.filter(a=>a.grp==="cash"&&!a.off).map(a=>({label:a.name,dest:a.id}));
+  opts.push({label:"💸 ถอนออกไปใช้จ่าย (ไม่นับในพอร์ต)",dest:"withdraw"});
+  chipsBubble("ขาย "+item.name+" ได้ "+fmt(price)+(item.cur==="USD"?" USD":" ฿")
+    +(item.cur==="USD"?"  ≈ "+fmt(proceedsThb,0)+" ฿":"")+"\nเงินที่ได้ เข้าบัญชีไหนคะ?",
+    opts,
+    op=>finalizeSell(item,price,op.dest));
+}
+function finalizeSell(item,price,destId){
+  const d=today(), fx=fxOn(d);
+  const proceedsThb=convertCur(price,item.cur,"THB",fx);
+  const hasCost=item.cost!=null;
+  const baseline=hasCost?item.cost:item.val;
+  const baselineThb=hasCost?convertCur(item.cost,item.cur,"THB",fx):item.thb;
+  const plOrig=price-baseline, plThb=proceedsThb-baselineThb;
+  const plPct=baseline?(plOrig/baseline*100):0;
+
+  /* เอาออกจากพอร์ตตั้งแต่วันนี้ (ประวัติก่อนหน้ายังอยู่ในกราฟ) */
+  const snap=todaySnapFor();
+  const nm=item.name.toLowerCase();
+  snap.items=snap.items.filter(x=>x.name.toLowerCase()!==nm);
+  jsave(KEY2,holds);
+
+  let destLabel, storageFail=false;
+  if(destId==="withdraw"){
+    destLabel="ถอนออกไปใช้จ่าย (ไม่นับในพอร์ตแล้ว)";
+  }else{
+    const wallet=accById(destId);
+    const es=sorted(), lastE=es.length?es[es.length-1]:null;
+    let entry=db.entries.find(x=>x.date===d);
+    if(!entry){ entry={date:d,fx:fxOn(d),vals:lastE?{...lastE.vals}:{}}; db.entries.push(entry); }
+    const addAmt=convertCur(price,item.cur,wallet.cur,fx);
+    entry.vals[destId]=Math.round(((entry.vals[destId]||0)+addAmt)*100)/100;
+    if(!jsave(KEY3,db)) storageFail=true;
+    destLabel=wallet.name;
+  }
+
+  let rz=jload(KEYRZ)||[];
+  rz.push({date:d,name:item.name,grp:item.grp,cur:item.cur,price,
+           proceedsThb:Math.round(proceedsThb*100)/100,cost:hasCost?item.cost:null,
+           pl:Math.round(plOrig*100)/100,plThb:Math.round(plThb*100)/100,
+           plPct:Math.round(plPct*100)/100,approx:!hasCost,dest:destId});
+  jsave(KEYRZ,rz);
+
+  logSnapshot(); updateTop();
+  if(document.getElementById("view-dash").classList.contains("on")) renderDash();
+
+  let msg="ขาย "+item.name+" แล้วค่า 💰\n";
+  msg+="ได้เงิน "+fmt(price)+(item.cur==="USD"?" USD":" ฿")
+    +(item.cur==="USD"?"  ≈ "+fmt(proceedsThb,0)+" ฿":"")+"\n";
+  if(!hasCost) msg+="⚠️ ยังไม่เคยตั้งต้นทุนไว้ เทียบกับมูลค่าล่าสุดที่บันทึกแทน (ไม่ใช่กำไรจริง 100% — ตั้งต้นทุนไว้ล่วงหน้าจะแม่นกว่า)\n";
+  msg+=(plThb>=0?"กำไรสุทธิ ":"ขาดทุนสุทธิ ")+sign(plThb)+fmt(Math.abs(plThb),0)+" ฿ ("+sign(plPct)+Math.abs(plPct).toFixed(2)+"%)\n";
+  msg+="เงินเข้า: "+destLabel;
+  if(storageFail) msg+="\n⚠️ เบราว์เซอร์นี้บันทึกถาวรไม่ได้ ข้อมูลจะหายเมื่อปิด";
+  bubble(msg,"bot");
+}
+
 function openSheet(it){
   const nameEl=document.getElementById("sh-name"), subEl=document.getElementById("sh-sub"),
         act=document.getElementById("sh-act");
@@ -1224,6 +1383,11 @@ function openSheet(it){
   nameEl.append(dot,document.createTextNode(it.name));
   subEl.textContent=(GNAME[it.grp]||it.grp)+" • "+fmt(it.val)+(it.cur==="USD"?" USD":" ฿")
     +(it.cur==="USD"?"  ≈ "+fmt(it.thb,0)+" ฿":"");
+  if(it.cost!=null){
+    const upl=it.val-it.cost, uplPct=it.cost?upl/it.cost*100:0;
+    subEl.textContent+="  •  ต้นทุน "+fmt(it.cost)+(it.cur==="USD"?" USD":" ฿")
+      +"  ("+sign(upl)+Math.abs(uplPct).toFixed(2)+"%)";
+  }
   act.textContent="";
   const mk=(label,fn,cls2)=>{ const b=document.createElement("button");
     b.textContent=label; if(cls2)b.className=cls2;
@@ -1244,6 +1408,31 @@ function openSheet(it){
     row.append(inp,ok); act.appendChild(row);
     setTimeout(()=>inp.focus(),50);
   });
+  if(it.grp!=="cash"){
+    mk("🏷 ตั้งต้นทุน",()=>{
+      act.textContent="";
+      const row=document.createElement("div"); row.className="editrow";
+      const inp=document.createElement("input");
+      inp.type="text"; inp.inputMode="decimal";
+      inp.placeholder="ต้นทุน ("+(it.cur==="USD"?"USD":"฿")+")"+(it.cost!=null?" • ปัจจุบัน "+fmt(it.cost):"");
+      const ok=document.createElement("button"); ok.textContent="บันทึก";
+      ok.addEventListener("click",()=>{
+        const v=Number(inp.value.replace(/,/g,""));
+        if(!(v>=0)||inp.value.trim()===""){ inp.style.borderColor="var(--down)"; return; }
+        setCostByName(it.name,v);
+        closeSheet();
+        bubble("ตั้งต้นทุน "+it.name+" = "+fmt(v)+(it.cur==="USD"?" USD":" ฿")+" แล้วค่า ✅","bot");
+      });
+      inp.addEventListener("keydown",e=>{ if(e.key==="Enter") ok.click(); });
+      row.append(inp,ok); act.appendChild(row);
+      setTimeout(()=>inp.focus(),50);
+    });
+    mk("💰 ขายรายการนี้",()=>{
+      closeSheet();
+      document.querySelector('.tabs button[data-v="chat"]').click();
+      startSell(it);
+    });
+  }
   mk("📜 ดูประวัติ",()=>{
     act.textContent="";
     const hist=assetHistory(it).slice().reverse();
