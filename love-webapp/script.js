@@ -134,6 +134,28 @@ function renderTimeline() {
 
 renderTimeline();
 
+// ---------- letter carousel ----------
+const letterTrack = document.getElementById("letter-track");
+const letterDots = document.getElementById("letter-dots");
+const letterCards = letterTrack.querySelectorAll(".letter-card");
+
+letterCards.forEach((_, i) => {
+  const dot = document.createElement("button");
+  dot.className = "letter-dot" + (i === 0 ? " active" : "");
+  dot.setAttribute("aria-label", `การ์ดใบที่ ${i + 1}`);
+  dot.addEventListener("click", () => {
+    letterTrack.scrollTo({ left: letterCards[i].offsetLeft - letterTrack.offsetLeft, behavior: "smooth" });
+  });
+  letterDots.appendChild(dot);
+});
+
+letterTrack.addEventListener("scroll", () => {
+  const idx = Math.round(letterTrack.scrollLeft / (letterTrack.scrollWidth / letterCards.length));
+  letterDots.querySelectorAll(".letter-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === idx);
+  });
+});
+
 // ---------- photo events ----------
 // เพิ่มหมวดใหม่: วางรูปใน assets/events/ แล้วเพิ่ม entry ที่นี่
 const PHOTO_EVENTS = [

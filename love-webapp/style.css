@@ -194,6 +194,19 @@ section {
 }
 
 /* LETTER */
+.letter-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 26px 4px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.letter-track::-webkit-scrollbar { display: none; }
+
 .letter-card {
   background: #fff;
   border-radius: 24px;
@@ -201,6 +214,40 @@ section {
   box-shadow: var(--shadow);
   border: 1px solid var(--pink-100);
   position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+}
+
+.letter-badge {
+  text-align: center;
+  color: var(--pink-500) !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px !important;
+}
+
+.letter-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.letter-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pink-200);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.letter-dot.active {
+  background: var(--pink-500);
+  width: 24px;
+  border-radius: 999px;
 }
 
 .letter-card::before {
