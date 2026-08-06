@@ -42,6 +42,7 @@ const ACTIVITIES = [
   { date: "2026-07-18", emoji: "🎬", title: "ดูหนังเรื่องที่ 6 Toy Story 5 @ Central Ayutthaya", photos: ["assets/activities/2026-07-18-1.jpeg"] },
   { date: "2026-07-19", emoji: "🎨", title: "ระบายสีกัน @ร้านเติมศิลป์", photos: ["assets/activities/2026-07-19-1.jpeg"] },
   { date: "2026-07-26", emoji: "✈️", title: "บินไปเชียงใหม่ด้วยกัน", photos: ["assets/activities/2026-07-26-1.jpeg"] },
+  { date: "2026-07-28", emoji: "🤍", title: "Forever", photos: ["assets/activities/2026-07-28-1.jpeg"] },
   { date: "2026-07-29", emoji: "✈️", title: "บินกลับกรุงเทพ", photos: ["assets/activities/2026-07-29-1.jpeg"] },
   { date: "2026-08-05", emoji: "🚀", title: "ZX Space @ Fashion Island", photos: ["assets/activities/2026-08-05-1.jpeg"] },
 ];
